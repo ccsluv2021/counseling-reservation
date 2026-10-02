@@ -8,21 +8,21 @@ import DayDetailModal from '@/components/DayDetailModal';
 import ReservationModal from '@/components/ReservationModal';
 import { PublicReservation, BlackoutSlot, SpaceSettings } from '@/types/reservation';
 import { formatDate } from '@/lib/utils';
-import { Sparkles, Info, Clock, Calendar as CalendarIcon, List } from 'lucide-react';
+import { Sparkles, Info, Clock, Calendar as CalendarIcon, CalendarDays } from 'lucide-react';
 
 /**
  * ==============================================================================
  * [page.tsx] 청춘스럽 1:1 상담실 예약 시스템 메인 페이지
  * 
  * - 상단: 청춘스럽 공식 로고 및 예약가능시간 카드 배너
- * - 보기 모드: [월간 달력] / [주간 일정] 원클릭 탭 전환 지원
- *   1) 월간 달력: 모바일에서는 '+1' 소속 건수 배지, PC에서는 풀칩 표기
- *   2) 주간 일정: 스마트폰에서 한 손으로 스크롤하며 날짜별 예약 현황을 시원하게 확인
+ * - 보기 모드: [월간 달력] ↔ [주간 달력] 일-토 그리드 기반 전환
+ *   1) 월간 달력: 1달 전체를 조망 (모바일에서는 위:이름/아래:시간 2줄 칩으로 가독성 확보)
+ *   2) 주간 달력: 이번 주(일~토 7칸)만 시원하게 잘라 여유롭게 확인
  * - 날짜 클릭 시 시간대별 상세 현황 확인, 예약 및 취소 가능
  * ==============================================================================
  */
 export default function Home() {
-  // 1. 보기 모드 상태 ('monthly': 월간 달력, 'weekly': 주간 일정 목록)
+  // 1. 보기 모드 상태 ('monthly': 월간 달력, 'weekly': 주간 달력)
   const [viewMode, setViewMode] = useState<'monthly' | 'weekly'>('monthly');
 
   // 2. 기준 날짜 상태
@@ -51,7 +51,7 @@ export default function Home() {
   const [reservationDate, setReservationDate] = useState<string>(() => formatDate(new Date()));
   const [reservationHour, setReservationHour] = useState(14);
 
-  // 5. 예약 데이터 조회 (전후 15일 범위)
+  // 5. 예약 데이터 조회 (전후 범위)
   const fetchReservations = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -59,7 +59,6 @@ export default function Home() {
       const year = baseDate.getFullYear();
       const month = baseDate.getMonth();
 
-      // 해당 월 시작일 전후 여유를 두어 이전 달 말일/다음 달 초일 데이터까지 한 번에 로드
       const start = new Date(year, month - 1, 20);
       const end = new Date(year, month + 2, 10);
 
@@ -87,7 +86,7 @@ export default function Home() {
     fetchReservations();
   }, [fetchReservations]);
 
-  // 달력 또는 카드에서 날짜 클릭 시 상세 패널 열기
+  // 달력에서 날짜 클릭 시 상세 패널 열기
   const handleSelectDate = (dateStr: string) => {
     setSelectedDayForDetail(dateStr);
   };
@@ -116,7 +115,7 @@ export default function Home() {
             <div className="space-y-2 max-w-xl">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 text-xs font-semibold text-white backdrop-blur-xs">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>청춘스럽 1:1 상담실 월간 예약 시스템</span>
+                <span>청춘스럽 1:1 상담실 예약 시스템</span>
               </div>
               
               <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight leading-snug">
@@ -155,7 +154,7 @@ export default function Home() {
         </div>
 
         {/* ------------------------------------------------------------- */}
-        {/* 보기 모드 전환 탭 ([월간 달력] / [주간 일정]) */}
+        {/* 보기 모드 전환 탭 ([월간 달력] / [주간 달력]) */}
         {/* ------------------------------------------------------------- */}
         <div className="flex items-center justify-between gap-3">
           <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl shadow-2xs">
@@ -180,18 +179,18 @@ export default function Home() {
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
-              <List className="w-3.5 h-3.5" />
-              <span>주간 일정</span>
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>주간 달력</span>
             </button>
           </div>
 
           <span className="text-[11px] text-gray-400 hidden sm:inline">
-            {viewMode === 'monthly' ? '한 달 전체의 일정을 달력으로 확인합니다.' : '이번 주 7일의 상세 일정을 카드로 확인합니다.'}
+            {viewMode === 'monthly' ? '한 달 전체 일정을 달력으로 확인합니다.' : '이번 주 7일(일~토) 일정을 시원한 달력으로 확인합니다.'}
           </span>
         </div>
 
         {/* ------------------------------------------------------------- */}
-        {/* 보기 모드에 따른 뷰 컴포넌트 렌더링 */}
+        {/* 보기 모드에 따른 7열 그리드 렌더링 */}
         {/* ------------------------------------------------------------- */}
         {viewMode === 'monthly' ? (
           <MonthlyCalendar

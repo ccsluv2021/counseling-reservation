@@ -25,9 +25,9 @@ interface MonthlyCalendarProps {
  * [MonthlyCalendar.tsx] 월간 달력(Monthly Grid) 기반 뷰 컴포넌트
  * 
  * - 한눈에 이번 달 전체 일정을 조망할 수 있는 7열(일~토) 달력
- * - 모바일(스마트폰): 좁은 칸에서 이름이 잘리지 않도록 소속별 건수 배지(+1, +2)로 깔끔하게 표시
- * - PC/태블릿: '권x한 11-12' 형태로 소속 및 시간대 풀 칩 표시
- * - 날짜 칸 또는 배지를 클릭하면 해당 일자의 상세 시간표 및 예약/취소 팝업이 바로 열림
+ * - 모바일(스마트폰): 칩을 2줄(위: 권x한 / 아래: 14-15)로 깔끔하게 배치하여 이름이 잘리지 않음
+ * - PC/태블릿: 1줄 풀 칩 표기 (권x한 11-12)
+ * - 날짜 칸 클릭 시 시간대별 상세 팝업 오픈 및 예약/취소 지원
  * ==============================================================================
  */
 export default function MonthlyCalendar({
@@ -189,11 +189,7 @@ export default function MonthlyCalendar({
           // 해당 날짜의 차단 슬롯 목록
           const dayBlackouts = blackouts.filter((b) => b.blackout_date === cell.dateStr);
 
-          // 소속별 건수 계산 (모바일 뱃지용)
-          const staffReservations = dayReservations.filter((r) => r.user_category === '청년공간 근무자');
-          const externalReservations = dayReservations.filter((r) => r.user_category !== '청년공간 근무자');
-
-          // PC 표시용: 상위 2건과 초과된 건수 계산
+          // 표시할 상위 건수
           const maxVisible = 2;
           const visibleReservations = dayReservations.slice(0, maxVisible);
           const hiddenCount = dayReservations.length - maxVisible;
@@ -202,7 +198,7 @@ export default function MonthlyCalendar({
             <div
               key={idx}
               onClick={() => onSelectDate(cell.dateStr)}
-              className={`min-h-[75px] sm:min-h-[125px] p-1 sm:p-2 flex flex-col justify-between transition-colors cursor-pointer group ${
+              className={`min-h-[90px] sm:min-h-[125px] p-1 sm:p-2 flex flex-col justify-between transition-colors cursor-pointer group ${
                 cell.isCurrentMonth ? 'bg-white hover:bg-blue-50/30' : 'bg-gray-50/40 text-gray-400'
               } ${isToday ? 'bg-blue-50/20' : ''}`}
             >
@@ -242,32 +238,8 @@ export default function MonthlyCalendar({
                 )}
               </div>
 
-              {/* ------------------------------------------------------------- */}
-              {/* [모바일 전용 뷰: sm 미만] 소속 색상 건수 뱃지 (+1, +2) */}
-              {/* ------------------------------------------------------------- */}
-              <div className="sm:hidden flex-1 flex flex-col justify-center gap-1 my-0.5">
-                {dayReservations.length > 0 && (
-                  <div className="flex flex-col gap-1 items-center">
-                    {/* 청년공간 근무자 예약 건수 (파란색) */}
-                    {staffReservations.length > 0 && (
-                      <span className="w-full text-center text-[10px] font-bold bg-blue-100/90 text-blue-700 border border-blue-200 rounded py-0.5 leading-none">
-                        +{staffReservations.length}
-                      </span>
-                    )}
-                    {/* 외부 상담사 예약 건수 (보라색) */}
-                    {externalReservations.length > 0 && (
-                      <span className="w-full text-center text-[10px] font-bold bg-purple-100/90 text-purple-700 border border-purple-200 rounded py-0.5 leading-none">
-                        +{externalReservations.length}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* ------------------------------------------------------------- */}
-              {/* [PC/태블릿 전용 뷰: sm 이상] 이름+시간 풀 칩 표기 (권x한 11-12) */}
-              {/* ------------------------------------------------------------- */}
-              <div className="hidden sm:block flex-1 space-y-1 overflow-hidden">
+              {/* 중앙: 예약 칩 리스트 */}
+              <div className="flex-1 space-y-1 overflow-hidden py-0.5">
                 {visibleReservations.map((res) => {
                   const startHour = res.start_time.split(':')[0];
                   const endHour = res.end_time.split(':')[0];
@@ -276,34 +248,45 @@ export default function MonthlyCalendar({
 
                   const isStaff = res.user_category === '청년공간 근무자';
                   const chipBgClass = isStaff
-                    ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200/90'
-                    : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200/90';
+                    ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+                    : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200';
                   const timeTextClass = isStaff ? 'text-blue-600' : 'text-purple-600';
 
                   return (
                     <div
                       key={res.id}
-                      className={`${chipBgClass} border rounded-md px-1.5 py-0.5 text-[11px] font-semibold flex items-center justify-between gap-1 shadow-2xs truncate transition`}
+                      className={`${chipBgClass} border rounded-md p-0.5 sm:px-1.5 sm:py-0.5 text-center shadow-2xs transition`}
                       title={`[${res.user_category}] ${maskedName} (${res.start_time}~${res.end_time}) - ${res.purpose}`}
                     >
-                      <span className="truncate">{maskedName}</span>
-                      <span className={`${timeTextClass} text-[10px] font-mono shrink-0`}>
-                        {timeLabel}
-                      </span>
+                      {/* 모바일(스마트폰): 2줄로 표시하여 이름 3글자가 전혀 안 잘림! */}
+                      <div className="sm:hidden flex flex-col items-center leading-tight">
+                        <span className="text-[10px] font-bold truncate w-full">{maskedName}</span>
+                        <span className={`${timeTextClass} text-[9px] font-mono leading-none mt-0.5`}>
+                          {timeLabel}
+                        </span>
+                      </div>
+
+                      {/* PC/태블릿: 1줄 가로 배치 */}
+                      <div className="hidden sm:flex items-center justify-between gap-1 text-[11px] font-semibold">
+                        <span className="truncate">{maskedName}</span>
+                        <span className={`${timeTextClass} text-[10px] font-mono shrink-0`}>
+                          {timeLabel}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
 
                 {/* +N건 더보기 칩 */}
                 {hiddenCount > 0 && (
-                  <div className="text-[10px] font-bold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded px-1.5 py-0.5 text-center transition">
-                    +{hiddenCount}건 더보기
+                  <div className="text-[9px] sm:text-[10px] font-bold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded px-1 py-0.5 text-center transition">
+                    +{hiddenCount}건
                   </div>
                 )}
               </div>
 
-              {/* 하단: PC 호버 시 나타나는 '예약 가능' 가이드 */}
-              <div className="hidden sm:block text-[10px] text-gray-400 group-hover:text-blue-600 transition-colors pt-1 text-right">
+              {/* 하단: 호버 시 나타나는 '예약 가능' 가이드 */}
+              <div className="hidden sm:block text-[10px] text-gray-400 group-hover:text-blue-600 transition-colors pt-0.5 text-right">
                 {cell.isCurrentMonth && !isSunday && dayReservations.length === 0 && (
                   <span className="opacity-0 group-hover:opacity-100 text-[10px] text-emerald-600">
                     +예약 가능
@@ -327,11 +310,11 @@ export default function MonthlyCalendar({
         <div className="flex items-center gap-2 sm:gap-3 text-xs font-semibold shrink-0">
           <div className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
             <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-blue-600" />
-            <span>근무자 (파랑)</span>
+            <span>청년공간 근무자 (파랑)</span>
           </div>
           <div className="flex items-center gap-1.5 text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
             <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-purple-600" />
-            <span>상담사 (보라)</span>
+            <span>외부 상담사 (보라)</span>
           </div>
         </div>
       </div>

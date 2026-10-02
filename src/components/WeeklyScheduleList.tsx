@@ -5,16 +5,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
-  Clock,
-  PlusCircle,
+  Sparkles,
   Ban,
-  CheckCircle2,
 } from 'lucide-react';
 import { PublicReservation, BlackoutSlot, SpaceSettings } from '@/types/reservation';
 import { formatDate } from '@/lib/utils';
 import { formatDisplayMaskedName } from '@/lib/crypto';
 
-interface WeeklyScheduleListProps {
+interface WeeklyCalendarGridProps {
   currentDate: Date; // 기준 날짜 객체
   onChangeDate: (newDate: Date) => void;
   reservations: PublicReservation[];
@@ -26,10 +24,11 @@ interface WeeklyScheduleListProps {
 
 /**
  * ==============================================================================
- * [WeeklyScheduleList.tsx] 주간 세로 카드 일정 목록 컴포넌트
+ * [WeeklyScheduleList.tsx] 7열(일 ~ 토) 주간 달력 그리드 컴포넌트
  * 
- * - 스마트폰(모바일)에서 한 손으로 스크롤하며 이번 주 일정을 시원하게 확인할 수 있는 뷰
- * - 각 날짜별로 예약자(이름, 소속, 시간)와 비어 있는 시간대 및 예약 바로가기 제공
+ * - 월간 달력과 완전히 동일한 일-토 7열 그리드 형태
+ * - 선택된 1주일(일요일 ~ 토요일)만 시원하게 잘라서 표시
+ * - 세로 높이가 넉넉하여 모바일에서도 예약자 이름(권x한)과 시간(14-15)이 잘리지 않고 한눈에 파악 가능
  * ==============================================================================
  */
 export default function WeeklyScheduleList({
@@ -37,46 +36,54 @@ export default function WeeklyScheduleList({
   onChangeDate,
   reservations,
   blackouts,
-  settings,
   onSelectDate,
   onOpenReservationModal,
-}: WeeklyScheduleListProps) {
+}: WeeklyCalendarGridProps) {
   const todayStr = formatDate(new Date());
 
-  // 현재 기준 날짜가 속한 주의 월요일 구하기
-  const getMonday = (d: Date) => {
+  // 기준 날짜가 속한 주의 일요일(시작일) 구하기
+  const getSunday = (d: Date) => {
     const date = new Date(d);
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // 일요일이면 지난 월요일
+    const day = date.getDay(); // 0(일) ~ 6(토)
+    const diff = date.getDate() - day; // 일요일로 이동
     return new Date(date.setDate(diff));
   };
 
-  const monday = getMonday(currentDate);
+  const sunday = getSunday(currentDate);
 
-  // 이번 주 월~일 (7일) 배열 생성
+  // 이번 주 일요일 ~ 토요일 (7일) 배열 생성
   const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
     return {
       dateObj: d,
       dateStr: formatDate(d),
       dayOfWeek: d.getDay(),
       dayNumber: d.getDate(),
       monthNumber: d.getMonth() + 1,
+      yearNumber: d.getFullYear(),
     };
   });
 
-  const weekDayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  const weekDayLabels = [
+    { label: '일', isSunday: true, isSaturday: false },
+    { label: '월', isSunday: false, isSaturday: false },
+    { label: '화', isSunday: false, isSaturday: false },
+    { label: '수', isSunday: false, isSaturday: false },
+    { label: '목', isSunday: false, isSaturday: false },
+    { label: '금', isSunday: false, isSaturday: false },
+    { label: '토', isSunday: false, isSaturday: true },
+  ];
 
   // 이전 주 / 다음 주 / 이번 주 이동
   const handlePrevWeek = () => {
-    const prev = new Date(monday);
+    const prev = new Date(sunday);
     prev.setDate(prev.getDate() - 7);
     onChangeDate(prev);
   };
 
   const handleNextWeek = () => {
-    const next = new Date(monday);
+    const next = new Date(sunday);
     next.setDate(next.getDate() + 7);
     onChangeDate(next);
   };
@@ -85,19 +92,21 @@ export default function WeeklyScheduleList({
     onChangeDate(new Date());
   };
 
-  // 주간 범위 타이틀 (예: 2026.10.01(목) ~ 10.07(수))
+  // 주간 헤더 타이틀 (예: 2026년 9월 27일 ~ 10월 3일)
   const firstDay = weekDays[0];
   const lastDay = weekDays[6];
-  const rangeTitle = `${firstDay.dateObj.getFullYear()}년 ${firstDay.monthNumber}월 ${firstDay.dayNumber}일 ~ ${lastDay.monthNumber}월 ${lastDay.dayNumber}일`;
+  const rangeTitle = `${firstDay.yearNumber}년 ${firstDay.monthNumber}월 ${firstDay.dayNumber}일 ~ ${
+    firstDay.monthNumber !== lastDay.monthNumber ? `${lastDay.monthNumber}월 ` : ''
+  }${lastDay.dayNumber}일`;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
       
       {/* 1. 상단 주간 네비게이션 헤더 */}
-      <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/50">
+      <div className="p-3.5 sm:p-5 border-b border-gray-100 flex items-center justify-between gap-2 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/50">
         
-        {/* 주간 네비게이션 버튼 및 범위 타이틀 */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* 주차 범위 제목 및 이전/다음 버튼 */}
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <button
             onClick={handlePrevWeek}
             type="button"
@@ -107,7 +116,7 @@ export default function WeeklyScheduleList({
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <h2 className="text-base sm:text-lg font-extrabold text-gray-900 tracking-tight">
+          <h2 className="text-base sm:text-xl font-extrabold text-gray-900 tracking-tight">
             {rangeTitle}
           </h2>
 
@@ -121,164 +130,146 @@ export default function WeeklyScheduleList({
           </button>
         </div>
 
-        {/* 이번 주로 이동 버튼 */}
-        <div className="flex items-center justify-end">
+        {/* 이번 주로 이동 & 예약 가이드 */}
+        <div className="flex items-center gap-2">
           <button
             onClick={handleThisWeek}
             type="button"
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 transition cursor-pointer"
+            className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 transition cursor-pointer"
           >
             이번 주로 이동
           </button>
+          <div className="hidden md:inline-flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>원하는 날짜를 클릭하면 시간표 확인 및 예약 가능</span>
+          </div>
         </div>
 
       </div>
 
-      {/* 2. 요일별 세로 카드 목록 */}
-      <div className="divide-y divide-gray-100 p-3 sm:p-4 space-y-3">
-        {weekDays.map((day) => {
-          const isToday = day.dateStr === todayStr;
-          const isSunday = day.dayOfWeek === 0;
-          const isSaturday = day.dayOfWeek === 6;
+      {/* 2. 요일 헤더 (일 ~ 토) */}
+      <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/70 text-center text-xs font-bold py-2 sm:py-2.5">
+        {weekDayLabels.map((w, idx) => (
+          <div
+            key={idx}
+            className={`${
+              w.isSunday ? 'text-red-500' : w.isSaturday ? 'text-blue-600' : 'text-gray-700'
+            }`}
+          >
+            {w.label}
+          </div>
+        ))}
+      </div>
 
-          // 해당 날짜의 예약 목록 필터링
+      {/* 3. 7열(일~토) 주간 달력 날짜 그리드 */}
+      <div className="grid grid-cols-7 divide-x divide-gray-200 border-b border-gray-200">
+        {weekDays.map((cell, idx) => {
+          const isToday = cell.dateStr === todayStr;
+          const isSunday = cell.dayOfWeek === 0;
+          const isSaturday = cell.dayOfWeek === 6;
+
+          // 해당 날짜의 확정 예약 목록 필터링
           const dayReservations = reservations
-            .filter((r) => r.reservation_date === day.dateStr && r.status === 'CONFIRMED')
+            .filter((r) => r.reservation_date === cell.dateStr && r.status === 'CONFIRMED')
             .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
-          // 해당 날짜의 점검/차단 슬롯
-          const dayBlackouts = blackouts.filter((b) => b.blackout_date === day.dateStr);
-
-          // 운영 시간 정보
-          const openHour = 11;
-          const closeHour = isSaturday ? 19 : 21;
+          // 해당 날짜의 차단 슬롯 목록
+          const dayBlackouts = blackouts.filter((b) => b.blackout_date === cell.dateStr);
 
           return (
             <div
-              key={day.dateStr}
-              className={`rounded-xl border transition-all p-3.5 sm:p-4 ${
-                isToday
-                  ? 'border-blue-300 bg-blue-50/20 shadow-xs'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+              key={idx}
+              onClick={() => onSelectDate(cell.dateStr)}
+              className={`min-h-[220px] sm:min-h-[280px] p-1 sm:p-2 flex flex-col justify-between transition-colors cursor-pointer group bg-white hover:bg-blue-50/30 ${
+                isToday ? 'bg-blue-50/20' : ''
               }`}
             >
-              {/* 날짜 헤더 */}
-              <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-sm font-extrabold px-2.5 py-0.5 rounded-lg ${
-                      isToday
-                        ? 'bg-blue-600 text-white'
-                        : isSunday
-                        ? 'bg-red-50 text-red-600 border border-red-200'
-                        : isSaturday
-                        ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {day.monthNumber}월 {day.dayNumber}일 ({weekDayNames[day.dayOfWeek]})
-                  </span>
-                  
-                  {isToday && (
-                    <span className="text-[11px] font-bold text-blue-600 bg-blue-100/70 px-2 py-0.5 rounded-full">
-                      오늘
-                    </span>
-                  )}
-                  {isSunday && (
-                    <span className="text-[11px] font-bold text-red-600 bg-red-100/70 px-2 py-0.5 rounded-full">
-                      정기 휴무
-                    </span>
-                  )}
-                  {dayBlackouts.length > 0 && (
-                    <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Ban className="w-3 h-3" />
-                      점검 일정
-                    </span>
-                  )}
-                </div>
+              {/* 상단: 날짜 번호 및 뱃지 */}
+              <div className="flex items-center justify-between mb-1">
+                <span
+                  className={`text-xs font-bold inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all ${
+                    isToday
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : isSunday
+                      ? 'text-red-500'
+                      : isSaturday
+                      ? 'text-blue-600'
+                      : 'text-gray-800'
+                  }`}
+                >
+                  {cell.dayNumber}
+                </span>
 
-                {/* 날짜 상세 팝업 열기 버튼 */}
-                {!isSunday && (
-                  <button
-                    onClick={() => onSelectDate(day.dateStr)}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition flex items-center gap-1 cursor-pointer"
+                {/* 일요일 정기 휴무 뱃지 */}
+                {isSunday && (
+                  <span className="text-[9px] sm:text-[10px] text-red-500 font-medium px-1 bg-red-50 rounded">
+                    휴무
+                  </span>
+                )}
+                {/* 점검 일정 뱃지 */}
+                {dayBlackouts.length > 0 && (
+                  <span
+                    className="text-[9px] sm:text-[10px] text-amber-700 font-medium px-1 bg-amber-50 rounded flex items-center gap-0.5"
+                    title={dayBlackouts.map((b) => b.reason).join(', ')}
                   >
-                    <span>시간표 전체보기</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                    <Ban className="w-2.5 h-2.5" />
+                    <span className="hidden sm:inline">점검</span>
+                  </span>
                 )}
               </div>
 
-              {/* 본문: 예약 내역 또는 비어 있음 안내 */}
-              <div className="pt-3">
-                {isSunday ? (
-                  <p className="text-xs text-gray-400 py-1 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" />
-                    일요일은 상담실 정기 휴무일입니다.
-                  </p>
-                ) : dayReservations.length === 0 ? (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-1">
-                    <p className="text-xs text-gray-500 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>현재 예약된 일정이 없습니다. ({openHour}:00 ~ {closeHour}:00 전 시간 예약 가능)</span>
-                    </p>
-                    <button
-                      onClick={() => onOpenReservationModal(day.dateStr, 14)}
-                      className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer self-start sm:self-auto"
+              {/* 중앙: 예약 칩 리스트 (주간 뷰이므로 세로 공간이 넉넉함!) */}
+              <div className="flex-1 space-y-1 sm:space-y-1.5 overflow-hidden py-1">
+                {dayReservations.map((res) => {
+                  const startHour = res.start_time.split(':')[0];
+                  const endHour = res.end_time.split(':')[0];
+                  const timeLabel = `${parseInt(startHour, 10)}-${parseInt(endHour, 10)}`;
+                  const maskedName = formatDisplayMaskedName(res.masked_name);
+
+                  const isStaff = res.user_category === '청년공간 근무자';
+                  const chipBgClass = isStaff
+                    ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+                    : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200';
+                  const timeTextClass = isStaff ? 'text-blue-600' : 'text-purple-600';
+
+                  return (
+                    <div
+                      key={res.id}
+                      className={`${chipBgClass} border rounded-lg p-1 text-center shadow-2xs transition`}
+                      title={`[${res.user_category}] ${maskedName} (${res.start_time}~${res.end_time}) - ${res.purpose}`}
                     >
-                      <PlusCircle className="w-3.5 h-3.5" />
-                      <span>예약하기</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {/* 예약 목록 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {dayReservations.map((res) => {
-                        const isStaff = res.user_category === '청년공간 근무자';
-                        const maskedName = formatDisplayMaskedName(res.masked_name);
-                        const chipBgClass = isStaff
-                          ? 'bg-blue-50/80 border-blue-200 text-blue-900'
-                          : 'bg-purple-50/80 border-purple-200 text-purple-900';
-                        const badgeClass = isStaff
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-purple-600 text-white';
+                      {/* 모바일: 2줄로 표시하여 이름/시간 절대 안 잘림 */}
+                      <div className="sm:hidden flex flex-col items-center leading-tight">
+                        <span className="text-[10px] font-bold truncate w-full">{maskedName}</span>
+                        <span className={`${timeTextClass} text-[9px] font-mono mt-0.5`}>
+                          {timeLabel}
+                        </span>
+                      </div>
 
-                        return (
-                          <div
-                            key={res.id}
-                            onClick={() => onSelectDate(day.dateStr)}
-                            className={`${chipBgClass} border rounded-xl p-2.5 flex items-center justify-between gap-2 transition hover:shadow-2xs cursor-pointer`}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <span className={`${badgeClass} text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0`}>
-                                {res.user_category}
-                              </span>
-                              <span className="font-bold text-xs truncate">
-                                {maskedName}
-                              </span>
-                            </div>
-                            <div className="text-xs font-mono font-semibold shrink-0 flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-gray-400" />
-                              <span>{res.start_time.slice(0, 5)} ~ {res.end_time.slice(0, 5)}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {/* PC: 1줄 또는 2줄로 시원하게 표시 */}
+                      <div className="hidden sm:flex items-center justify-between gap-1 text-[11px] font-semibold">
+                        <span className="truncate">{maskedName}</span>
+                        <span className={`${timeTextClass} text-[10px] font-mono shrink-0`}>
+                          {timeLabel}
+                        </span>
+                      </div>
                     </div>
+                  );
+                })}
 
-                    {/* 추가 예약 버튼 */}
-                    <div className="pt-1 flex justify-end">
-                      <button
-                        onClick={() => onOpenReservationModal(day.dateStr, 14)}
-                        className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-gray-100 hover:bg-blue-50 text-gray-700 hover:text-blue-700 text-xs font-semibold transition cursor-pointer"
-                      >
-                        <PlusCircle className="w-3.5 h-3.5" />
-                        <span>이 날짜에 추가 예약하기</span>
-                      </button>
-                    </div>
+                {/* 빈 날짜 안내 */}
+                {!isSunday && dayReservations.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-center py-4">
+                    <span className="text-[10px] text-gray-400 group-hover:text-blue-600 transition">
+                      +예약 가능
+                    </span>
                   </div>
                 )}
+              </div>
+
+              {/* 하단: 날짜 클릭 유도 */}
+              <div className="text-[9px] text-gray-400 group-hover:text-blue-600 transition-colors pt-1 text-center sm:text-right">
+                <span className="hidden sm:inline">상세보기</span>
               </div>
 
             </div>
@@ -286,20 +277,22 @@ export default function WeeklyScheduleList({
         })}
       </div>
 
-      {/* 3. 하단 안내 및 범례 */}
-      <div className="p-4 bg-gray-50/70 border-t border-gray-200 text-xs text-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* 4. 하단 친절한 이용 안내 및 소속별 칩 범례 */}
+      <div className="p-3 sm:p-4 bg-gray-50/70 border-t border-gray-200 text-xs text-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2">
           <CalendarIcon className="w-4 h-4 text-blue-600 shrink-0" />
-          <span>카드를 클릭하면 해당 일자의 상세 시간표 확인 및 예약 취소가 가능합니다.</span>
+          <span>
+            날짜를 클릭하면 <b>상세 시간표 확인</b> 및 <b>예약/취소</b>가 가능합니다.
+          </span>
         </div>
-        <div className="flex items-center gap-3 text-xs font-semibold shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 text-xs font-semibold shrink-0">
           <div className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-            <span>청년공간 근무자</span>
+            <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-blue-600" />
+            <span>청년공간 근무자 (파랑)</span>
           </div>
           <div className="flex items-center gap-1.5 text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
-            <span>외부 상담사</span>
+            <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-purple-600" />
+            <span>외부 상담사 (보라)</span>
           </div>
         </div>
       </div>
