@@ -3,27 +3,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
 import MonthlyCalendar from '@/components/MonthlyCalendar';
+import WeeklyScheduleList from '@/components/WeeklyScheduleList';
 import DayDetailModal from '@/components/DayDetailModal';
 import ReservationModal from '@/components/ReservationModal';
 import { PublicReservation, BlackoutSlot, SpaceSettings } from '@/types/reservation';
 import { formatDate } from '@/lib/utils';
-import { Sparkles, Info, Clock } from 'lucide-react';
+import { Sparkles, Info, Clock, Calendar as CalendarIcon, List } from 'lucide-react';
 
 /**
  * ==============================================================================
  * [page.tsx] 청춘스럽 1:1 상담실 예약 시스템 메인 페이지
  * 
- * - 상단: 청춘스럽 공식 로고 헤더 및 좌우 밸런스를 맞춘 안내 배너 (우측: 예약가능시간 카드)
- * - 중앙: 월간 달력(Monthly Grid) 기반 직관적인 예약 현황 조망
- * - 파란색(근무자)/보라색(외부상담사) 칩으로 소속 및 시간대(권x한 11-12) 한눈에 확인
- * - 날짜 클릭 시 시간대별 상세 현황 확인, 예약 및 그 자리에서 취소 가능
+ * - 상단: 청춘스럽 공식 로고 및 예약가능시간 카드 배너
+ * - 보기 모드: [월간 달력] / [주간 일정] 원클릭 탭 전환 지원
+ *   1) 월간 달력: 모바일에서는 '+1' 소속 건수 배지, PC에서는 풀칩 표기
+ *   2) 주간 일정: 스마트폰에서 한 손으로 스크롤하며 날짜별 예약 현황을 시원하게 확인
+ * - 날짜 클릭 시 시간대별 상세 현황 확인, 예약 및 취소 가능
  * ==============================================================================
  */
 export default function Home() {
-  // 1. 현재 표시 중인 기준 년/월
-  const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
+  // 1. 보기 모드 상태 ('monthly': 월간 달력, 'weekly': 주간 일정 목록)
+  const [viewMode, setViewMode] = useState<'monthly' | 'weekly'>('monthly');
 
-  // 2. 예약 데이터 및 설정 상태
+  // 2. 기준 날짜 상태
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
+  const [currentWeekDate, setCurrentWeekDate] = useState<Date>(() => new Date());
+
+  // 3. 예약 데이터 및 설정 상태
   const [reservations, setReservations] = useState<PublicReservation[]>([]);
   const [blackouts, setBlackouts] = useState<BlackoutSlot[]>([]);
   const [settings, setSettings] = useState<SpaceSettings>({
@@ -39,18 +45,19 @@ export default function Home() {
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // 3. 모달 상태
+  // 4. 모달 상태
   const [selectedDayForDetail, setSelectedDayForDetail] = useState<string | null>(null);
   const [isReservationOpen, setIsReservationOpen] = useState(false);
   const [reservationDate, setReservationDate] = useState<string>(() => formatDate(new Date()));
   const [reservationHour, setReservationHour] = useState(14);
 
-  // 4. 현재 표시 중인 월 기준 전후 범위의 예약 데이터 조회
+  // 5. 예약 데이터 조회 (전후 15일 범위)
   const fetchReservations = useCallback(async () => {
     setIsLoading(true);
     try {
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
+      const baseDate = viewMode === 'monthly' ? currentMonth : currentWeekDate;
+      const year = baseDate.getFullYear();
+      const month = baseDate.getMonth();
 
       // 해당 월 시작일 전후 여유를 두어 이전 달 말일/다음 달 초일 데이터까지 한 번에 로드
       const start = new Date(year, month - 1, 20);
@@ -74,13 +81,13 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentMonth]);
+  }, [viewMode, currentMonth, currentWeekDate]);
 
   useEffect(() => {
     fetchReservations();
   }, [fetchReservations]);
 
-  // 달력에서 날짜 클릭 시 상세 패널 열기
+  // 달력 또는 카드에서 날짜 클릭 시 상세 패널 열기
   const handleSelectDate = (dateStr: string) => {
     setSelectedDayForDetail(dateStr);
   };
@@ -99,11 +106,11 @@ export default function Home() {
       <Header />
 
       {/* 메인 본문 컨테이너 */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5 sm:space-y-6">
         
         {/* 상단 소개 및 예약가능시간 배너 (좌우 2단 배치) */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-6 sm:p-7 text-white shadow-md">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-5 sm:p-7 text-white shadow-md">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
             
             {/* 좌측 영역: 타이틀 및 안내 */}
             <div className="space-y-2 max-w-xl">
@@ -117,11 +124,11 @@ export default function Home() {
               </h2>
 
               <p className="text-xs sm:text-sm text-blue-100 leading-relaxed">
-                달력에서 원하는 날짜를 클릭하면 시간대별 예약 현황 확인 및 즉시 예약·취소가 가능합니다.
+                날짜를 클릭하면 시간대별 예약 현황 확인 및 즉시 예약·취소가 가능합니다.
               </p>
             </div>
 
-            {/* 우측 영역: 예약가능시간 카드 (우측 빈 공간 활용) */}
+            {/* 우측 영역: 예약가능시간 카드 */}
             <div className="shrink-0">
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20 shadow-inner w-full md:w-64">
                 <div className="flex items-center gap-1.5 font-bold text-blue-100 mb-2.5 text-xs sm:text-sm">
@@ -147,17 +154,67 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 메인 월간 달력 그리드 컴포넌트 */}
-        <MonthlyCalendar
-          currentMonth={currentMonth}
-          onChangeMonth={setCurrentMonth}
-          reservations={reservations}
-          blackouts={blackouts}
-          onSelectDate={handleSelectDate}
-        />
+        {/* ------------------------------------------------------------- */}
+        {/* 보기 모드 전환 탭 ([월간 달력] / [주간 일정]) */}
+        {/* ------------------------------------------------------------- */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl shadow-2xs">
+            <button
+              onClick={() => setViewMode('monthly')}
+              type="button"
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                viewMode === 'monthly'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              <CalendarIcon className="w-3.5 h-3.5" />
+              <span>월간 달력</span>
+            </button>
+            <button
+              onClick={() => setViewMode('weekly')}
+              type="button"
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                viewMode === 'weekly'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>주간 일정</span>
+            </button>
+          </div>
+
+          <span className="text-[11px] text-gray-400 hidden sm:inline">
+            {viewMode === 'monthly' ? '한 달 전체의 일정을 달력으로 확인합니다.' : '이번 주 7일의 상세 일정을 카드로 확인합니다.'}
+          </span>
+        </div>
+
+        {/* ------------------------------------------------------------- */}
+        {/* 보기 모드에 따른 뷰 컴포넌트 렌더링 */}
+        {/* ------------------------------------------------------------- */}
+        {viewMode === 'monthly' ? (
+          <MonthlyCalendar
+            currentMonth={currentMonth}
+            onChangeMonth={setCurrentMonth}
+            reservations={reservations}
+            blackouts={blackouts}
+            onSelectDate={handleSelectDate}
+          />
+        ) : (
+          <WeeklyScheduleList
+            currentDate={currentWeekDate}
+            onChangeDate={setCurrentWeekDate}
+            reservations={reservations}
+            blackouts={blackouts}
+            settings={settings}
+            onSelectDate={handleSelectDate}
+            onOpenReservationModal={handleOpenReservationModal}
+          />
+        )}
 
         {/* 하단 공간 이용 수칙 카드 */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs">
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs">
           <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-3">
             <Info className="w-4 h-4 text-blue-600" />
             <span>상담실 이용 안내 및 운영 수칙</span>
