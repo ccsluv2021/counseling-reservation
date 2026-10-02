@@ -26,9 +26,9 @@ interface WeeklyCalendarGridProps {
  * ==============================================================================
  * [WeeklyScheduleList.tsx] 월~토 6열 주간 달력 그리드 컴포넌트
  * 
- * - 갤럭시, 아이폰, PC 모두 100% 동일하게 적용
+ * - 상단 제목을 `'26년 10월 1주` 형태로 컴팩트하게 단축하여 모바일 줄바꿈 방지
+ * - 버튼 텍스트를 `이번주`로 3글자 단축하여 쪼개짐 방지
  * - 주간 달력 칸에서는 '이름 시간' (예: 권x한 14-15)을 한 줄로 컴팩트하게 표기
- * - 소속별 컬러 칩 (근무자: 파란색, 외부상담사: 보라색)
  * ==============================================================================
  */
 export default function WeeklyScheduleList({
@@ -91,31 +91,34 @@ export default function WeeklyScheduleList({
     onChangeDate(new Date());
   };
 
-  // 주간 헤더 타이틀 (예: 2026년 9월 28일(월) ~ 10월 3일(토))
-  const firstDay = weekDays[0];
-  const lastDay = weekDays[5];
-  const rangeTitle = `${firstDay.yearNumber}년 ${firstDay.monthNumber}월 ${firstDay.dayNumber}일(월) ~ ${
-    firstDay.monthNumber !== lastDay.monthNumber ? `${lastDay.monthNumber}월 ` : ''
-  }${lastDay.dayNumber}일(토)`;
+  // -------------------------------------------------------------
+  // [주차 제목 단축 계산] 해당 주 목요일 기준 'YY년 M월 N주 (예: '26년 10월 1주)
+  // -------------------------------------------------------------
+  const thursday = new Date(monday);
+  thursday.setDate(monday.getDate() + 3);
+  const yearShort = String(thursday.getFullYear()).slice(-2);
+  const monthNum = thursday.getMonth() + 1;
+  const weekNumber = Math.ceil(thursday.getDate() / 7);
+  const rangeTitle = `'${yearShort}년 ${monthNum}월 ${weekNumber}주`;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
       
       {/* 1. 상단 주간 네비게이션 헤더 */}
-      <div className="p-3.5 sm:p-5 border-b border-gray-100 flex items-center justify-between gap-2 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/50">
+      <div className="p-3 sm:p-5 border-b border-gray-100 flex items-center justify-between gap-2 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/50">
         
-        {/* 주차 범위 제목 및 이전/다음 버튼 */}
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        {/* 주차 제목 및 이전/다음 버튼 */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
           <button
             onClick={handlePrevWeek}
             type="button"
             className="p-1.5 sm:p-2 rounded-xl border border-gray-200 hover:bg-gray-100 text-gray-700 transition cursor-pointer"
             title="이전 주"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
-          <h2 className="text-sm sm:text-xl font-extrabold text-gray-900 tracking-tight">
+          <h2 className="text-base sm:text-xl font-extrabold text-gray-900 tracking-tight whitespace-nowrap">
             {rangeTitle}
           </h2>
 
@@ -125,18 +128,18 @@ export default function WeeklyScheduleList({
             className="p-1.5 sm:p-2 rounded-xl border border-gray-200 hover:bg-gray-100 text-gray-700 transition cursor-pointer"
             title="다음 주"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
-        {/* 이번 주로 이동 & 예약 가이드 */}
+        {/* '이번주' 이동 버튼 (3글자 단축) & 예약 가이드 */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleThisWeek}
             type="button"
-            className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 transition cursor-pointer"
+            className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 transition cursor-pointer whitespace-nowrap"
           >
-            이번 주로 이동
+            이번주
           </button>
           <div className="hidden md:inline-flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
             <Sparkles className="w-3.5 h-3.5" />
@@ -208,9 +211,7 @@ export default function WeeklyScheduleList({
                 )}
               </div>
 
-              {/* ------------------------------------------------------------- */}
-              {/* [주간 달력 전 기기 공통] '이름 시간' 한 줄 표기 */}
-              {/* ------------------------------------------------------------- */}
+              {/* 중앙: 예약 칩 리스트 (한 줄 표기) */}
               <div className="flex-1 space-y-1 sm:space-y-1.5 overflow-hidden py-1">
                 {dayReservations.map((res) => {
                   const startHour = res.start_time.split(':')[0];
@@ -230,7 +231,6 @@ export default function WeeklyScheduleList({
                       className={`${chipBgClass} border rounded-md px-1 py-0.5 shadow-2xs transition flex items-center justify-between gap-0.5 text-[10px] sm:text-[11px] font-semibold leading-tight`}
                       title={`[${res.user_category}] ${maskedName} (${res.start_time}~${res.end_time}) - ${res.purpose}`}
                     >
-                      {/* 갤럭시, 아이폰, PC 모두 동일하게 한 줄로 표기 */}
                       <span className="truncate">{maskedName}</span>
                       <span className={`${timeTextClass} text-[9px] sm:text-[10px] font-mono shrink-0`}>
                         {timeLabel}

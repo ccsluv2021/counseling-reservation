@@ -15,10 +15,10 @@ import { Sparkles, Info, Clock, Calendar as CalendarIcon, CalendarDays } from 'l
  * [page.tsx] 청춘스럽 1:1 상담실 예약 시스템 메인 페이지
  * 
  * - 상단: 청춘스럽 공식 로고 및 예약가능시간 카드 배너
- * - 보기 모드: [월간 달력] ↔ [주간 달력] 일-토 그리드 기반 전환
- *   1) 월간 달력: 1달 전체를 조망 (모바일에서는 위:이름/아래:시간 2줄 칩으로 가독성 확보)
- *   2) 주간 달력: 이번 주(일~토 7칸)만 시원하게 잘라 여유롭게 확인
- * - 날짜 클릭 시 시간대별 상세 현황 확인, 예약 및 취소 가능
+ * - 보기 모드: [월간 달력] ↔ [주간 달력] 월~토 6열 그리드 전환
+ *   1) 월간 달력: 소속별 색상 뱃지(+1, +2)로 깔끔하게 전체 조망
+ *   2) 주간 달력: '26년 10월 1주 단위로 '이름 시간' 한 줄 표기
+ * - 하단 이용 수칙: 컴팩트한 글씨 크기와 정돈된 문장으로 어색한 줄바꿈 없이 한눈에 가독
  * ==============================================================================
  */
 export default function Home() {
@@ -105,7 +105,7 @@ export default function Home() {
       <Header />
 
       {/* 메인 본문 컨테이너 */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5 sm:space-y-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 space-y-4 sm:space-y-6">
         
         {/* 상단 소개 및 예약가능시간 배너 (좌우 2단 배치) */}
         <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-5 sm:p-7 text-white shadow-md">
@@ -185,12 +185,12 @@ export default function Home() {
           </div>
 
           <span className="text-[11px] text-gray-400 hidden sm:inline">
-            {viewMode === 'monthly' ? '한 달 전체 일정을 달력으로 확인합니다.' : '이번 주 7일(일~토) 일정을 시원한 달력으로 확인합니다.'}
+            {viewMode === 'monthly' ? '한 달 전체 일정을 달력으로 확인합니다.' : '이번 주 6일(월~토) 일정을 집중하여 확인합니다.'}
           </span>
         </div>
 
         {/* ------------------------------------------------------------- */}
-        {/* 보기 모드에 따른 7열 그리드 렌더링 */}
+        {/* 보기 모드에 따른 월~토 6열 그리드 렌더링 */}
         {/* ------------------------------------------------------------- */}
         {viewMode === 'monthly' ? (
           <MonthlyCalendar
@@ -212,35 +212,37 @@ export default function Home() {
           />
         )}
 
-        {/* 하단 공간 이용 수칙 카드 */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs">
-          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-3">
-            <Info className="w-4 h-4 text-blue-600" />
+        {/* ------------------------------------------------------------- */}
+        {/* 하단 공간 이용 수칙 카드 (어색한 줄바꿈 없이 한눈에 정돈) */}
+        {/* ------------------------------------------------------------- */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-xs">
+          <h3 className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-2 mb-2.5">
+            <Info className="w-4 h-4 text-blue-600 shrink-0" />
             <span>상담실 이용 안내 및 운영 수칙</span>
           </h3>
-          <ul className="text-xs text-gray-600 space-y-2 leading-relaxed">
-            <li className="flex items-start gap-2">
+          <ul className="text-[11px] sm:text-xs text-gray-600 space-y-1.5 leading-normal">
+            <li className="flex items-start gap-1.5">
               <span className="text-blue-600 font-bold">•</span>
               <span>
-                <b>운영 시간:</b> 평일(월~금) 11:00 ~ 21:00 / 토요일 11:00 ~ 19:00 (일요일 및 법정 공휴일 정기 휴무)
+                <b>운영 시간:</b> 평일 11:00~21:00 / 토요일 11:00~19:00 (일요일 및 공휴일 휴관)
               </span>
             </li>
-            <li className="flex items-start gap-2">
+            <li className="flex items-start gap-1.5">
               <span className="text-blue-600 font-bold">•</span>
               <span>
-                <b>이용 대상:</b> 청춘스럽 상주 근무자, 위촉 외부 상담사에 한하여 단독 예약 및 사용 가능
+                <b>이용 대상:</b> 청춘스럽 상주 근무자 및 위촉 외부 상담사 전용 (단독 사용)
               </span>
             </li>
-            <li className="flex items-start gap-2">
+            <li className="flex items-start gap-1.5">
               <span className="text-blue-600 font-bold">•</span>
               <span>
-                <b>예약 및 취소:</b> 1회 최대 3시간까지 연속 예약이 가능하며, 일정 변경 시 날짜를 클릭하여 해당 예약의 <b>[취소하기]</b> 버튼에서 직접 취소 후 다시 예약해 주세요.
+                <b>예약·취소:</b> 1회 최대 3시간 (날짜 클릭 후 <b>[취소하기]</b> 버튼에서 직접 취소 가능)
               </span>
             </li>
-            <li className="flex items-start gap-2">
+            <li className="flex items-start gap-1.5">
               <span className="text-blue-600 font-bold">•</span>
               <span>
-                <b>퇴실 안내:</b> 다음 상담사를 위해 사용 후 상담실 내 비품 정리 및 소등, 환기를 부탁드립니다.
+                <b>퇴실 안내:</b> 사용 후 다음 상담사를 위해 비품 정리, 소등 및 환기 필수
               </span>
             </li>
           </ul>
@@ -249,9 +251,9 @@ export default function Home() {
       </main>
 
       {/* 푸터 */}
-      <footer className="border-t border-gray-200 bg-white py-6 mt-12 text-center text-xs text-gray-500">
+      <footer className="border-t border-gray-200 bg-white py-5 mt-8 text-center text-xs text-gray-500">
         <p>© 2026 청춘스럽 상담실 예약 시스템. All rights reserved.</p>
-        <p className="mt-1 text-gray-400">
+        <p className="mt-0.5 text-gray-400">
           청춘스럽 근무자 · 외부 상담사 안전 예약 플랫폼
         </p>
       </footer>

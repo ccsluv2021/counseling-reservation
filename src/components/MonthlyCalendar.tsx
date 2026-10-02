@@ -25,9 +25,7 @@ interface MonthlyCalendarProps {
  * 
  * - 갤럭시, 아이폰, PC 모두 100% 동일하게 적용
  * - 월간 달력 칸에서는 긴 텍스트 대신 깔끔한 소속별 색깔 뱃지(+1, +2)로 표기
- *   1) 청년공간 근무자 예약: 파란색 뱃지 (+N)
- *   2) 외부 상담사 예약: 보라색 뱃지 (+N)
- * - 날짜 클릭 시 시간대별 상세 팝업 오픈 및 예약/취소 지원
+ * - 버튼 텍스트를 '오늘'로 단축하여 모바일 가독성 향상
  * ==============================================================================
  */
 export default function MonthlyCalendar({
@@ -138,14 +136,14 @@ export default function MonthlyCalendar({
           </button>
         </div>
 
-        {/* 오늘 바로가기 & 예약 안내 */}
+        {/* '오늘' 바로가기 (단축) & 예약 안내 */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleToday}
             type="button"
-            className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 transition cursor-pointer"
+            className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 transition cursor-pointer whitespace-nowrap"
           >
-            오늘로 이동
+            오늘
           </button>
           <div className="hidden md:inline-flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
             <Sparkles className="w-3.5 h-3.5" />
@@ -179,7 +177,7 @@ export default function MonthlyCalendar({
           const dayReservations = reservations
             .filter((r) => r.reservation_date === cell.dateStr && r.status === 'CONFIRMED');
 
-          // 소속별 건수 계산 (모든 기기 공통 색깔 뱃지용)
+          // 소속별 건수 계산
           const staffCount = dayReservations.filter((r) => r.user_category === '청년공간 근무자').length;
           const externalCount = dayReservations.filter((r) => r.user_category !== '청년공간 근무자').length;
 
@@ -222,9 +220,7 @@ export default function MonthlyCalendar({
                 )}
               </div>
 
-              {/* ------------------------------------------------------------- */}
               {/* [월간 달력 전 기기 공통] 소속별 색깔 뱃지 (+1, +2) 표기 */}
-              {/* ------------------------------------------------------------- */}
               <div className="flex-1 flex flex-col justify-center items-center gap-1 my-0.5">
                 {dayReservations.length > 0 ? (
                   <div className="w-full flex flex-col gap-1 items-center">
@@ -256,7 +252,7 @@ export default function MonthlyCalendar({
                 )}
               </div>
 
-              {/* 하단: 미세한 여백 정돈 */}
+              {/* 하단: 미세한 여백 */}
               <div className="h-1" />
 
             </div>
