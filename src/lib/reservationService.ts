@@ -124,6 +124,16 @@ export async function updateSpaceSettings(settings: Partial<SpaceSettings>): Pro
 }
 
 /**
+ * 시간 문자열 정규화 헬퍼 함수 ("HH:mm:ss" -> "HH:mm")
+ * 데이터베이스(PostgreSQL TIME 타입)가 '11:00:00' 형태로 반환하더라도
+ * 일관되게 '11:00' 형태의 5글자 표준 포맷으로 맞추어 문자열 비교 오류를 완벽 방지합니다.
+ */
+export function normalizeTime(timeStr: string): string {
+  if (!timeStr) return '';
+  return timeStr.slice(0, 5);
+}
+
+/**
  * 3. 일반 사용자용 캘린더 예약 목록 조회 (민감정보 제외, 마스킹 이름만 노출)
  */
 export async function getPublicReservations(
@@ -140,7 +150,11 @@ export async function getPublicReservations(
         .eq('status', 'CONFIRMED');
 
       if (!error && data) {
-        return data as PublicReservation[];
+        return (data as PublicReservation[]).map((r) => ({
+          ...r,
+          start_time: normalizeTime(r.start_time),
+          end_time: normalizeTime(r.end_time),
+        }));
       }
     } catch (err) {
       console.warn('Supabase 예약 조회 실패, 로컬 저장소 사용:', err);
@@ -158,8 +172,8 @@ export async function getPublicReservations(
     .map((r) => ({
       id: r.id,
       reservation_date: r.reservation_date,
-      start_time: r.start_time,
-      end_time: r.end_time,
+      start_time: normalizeTime(r.start_time),
+      end_time: normalizeTime(r.end_time),
       user_category: r.user_category,
       masked_name: r.masked_name,
       purpose: r.purpose,
@@ -183,7 +197,11 @@ export async function getBlackoutSlots(
         .lte('blackout_date', endDate);
 
       if (!error && data) {
-        return data as BlackoutSlot[];
+        return (data as BlackoutSlot[]).map((b) => ({
+          ...b,
+          start_time: normalizeTime(b.start_time),
+          end_time: normalizeTime(b.end_time),
+        }));
       }
     } catch (err) {
       console.warn('Supabase 차단 목록 조회 실패:', err);
@@ -205,8 +223,12 @@ function isTimeOverlapping(
   startB: string,
   endB: string
 ): boolean {
-  // 시간 포맷: "HH:mm" (예: "11:00", "14:00")
-  return startA < endB && endA > startB;
+  // 시간 포맷: "HH:mm" 정규화 후 안전 비교
+  const normStartA = normalizeTime(startA);
+  const normEndA = normalizeTime(endA);
+  const normStartB = normalizeTime(startB);
+  const normEndB = normalizeTime(endB);
+  return normStartA < normEndB && normEndA > normStartB;
 }
 
 /**
@@ -256,10 +278,16 @@ export async function createReservation(
   const openTime = dayOfWeek === 6 ? settings.saturday_open : settings.weekday_open;
   const closeTime = dayOfWeek === 6 ? settings.saturday_close : settings.weekday_close;
 
-  if (dto.start_time < openTime || dto.end_time > closeTime) {
+  // DB에서 "11:00:00"으로 반환되더라도 5글자 "11:00"으로 정규화하여 안전하게 비교
+  const normOpen = normalizeTime(openTime);
+  const normClose = normalizeTime(closeTime);
+  const normStart = normalizeTime(dto.start_time);
+  const normEnd = normalizeTime(dto.end_time);
+
+  if (normStart < normOpen || normEnd > normClose) {
     return {
       success: false,
-      message: `상담실 이용 가능 시간(${openTime} ~ ${closeTime})을 벗어났습니다.`,
+      message: `상담실 이용 가능 시간(${normOpen} ~ ${normClose})을 벗어났습니다.`,
     };
   }
 
