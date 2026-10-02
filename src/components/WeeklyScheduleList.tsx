@@ -26,8 +26,9 @@ interface WeeklyCalendarGridProps {
  * ==============================================================================
  * [WeeklyScheduleList.tsx] 월~토 6열 주간 달력 그리드 컴포넌트
  * 
- * - 일요일(정기 휴무)을 완전히 제외하여 예약 가능한 월~토 6일만 집중 표시
- * - 6열 그리드로 칸 너비가 대폭 확장되어 모바일에서도 이름(권x한)과 시간(14-15)이 시원하게 보임
+ * - 갤럭시, 아이폰, PC 모두 100% 동일하게 적용
+ * - 주간 달력 칸에서는 '이름 시간' (예: 권x한 14-15)을 한 줄로 컴팩트하게 표기
+ * - 소속별 컬러 칩 (근무자: 파란색, 외부상담사: 보라색)
  * ==============================================================================
  */
 export default function WeeklyScheduleList({
@@ -207,7 +208,9 @@ export default function WeeklyScheduleList({
                 )}
               </div>
 
-              {/* 중앙: 예약 칩 리스트 (6열이라 가로 폭이 훨씬 넓어짐!) */}
+              {/* ------------------------------------------------------------- */}
+              {/* [주간 달력 전 기기 공통] '이름 시간' 한 줄 표기 */}
+              {/* ------------------------------------------------------------- */}
               <div className="flex-1 space-y-1 sm:space-y-1.5 overflow-hidden py-1">
                 {dayReservations.map((res) => {
                   const startHour = res.start_time.split(':')[0];
@@ -224,24 +227,14 @@ export default function WeeklyScheduleList({
                   return (
                     <div
                       key={res.id}
-                      className={`${chipBgClass} border rounded-lg p-1 text-center shadow-2xs transition`}
+                      className={`${chipBgClass} border rounded-md px-1 py-0.5 shadow-2xs transition flex items-center justify-between gap-0.5 text-[10px] sm:text-[11px] font-semibold leading-tight`}
                       title={`[${res.user_category}] ${maskedName} (${res.start_time}~${res.end_time}) - ${res.purpose}`}
                     >
-                      {/* 모바일: 2줄로 표시 */}
-                      <div className="sm:hidden flex flex-col items-center leading-tight">
-                        <span className="text-[10px] font-bold truncate w-full">{maskedName}</span>
-                        <span className={`${timeTextClass} text-[9px] font-mono mt-0.5`}>
-                          {timeLabel}
-                        </span>
-                      </div>
-
-                      {/* PC: 1줄 가로 배치 */}
-                      <div className="hidden sm:flex items-center justify-between gap-1 text-[11px] font-semibold">
-                        <span className="truncate">{maskedName}</span>
-                        <span className={`${timeTextClass} text-[10px] font-mono shrink-0`}>
-                          {timeLabel}
-                        </span>
-                      </div>
+                      {/* 갤럭시, 아이폰, PC 모두 동일하게 한 줄로 표기 */}
+                      <span className="truncate">{maskedName}</span>
+                      <span className={`${timeTextClass} text-[9px] sm:text-[10px] font-mono shrink-0`}>
+                        {timeLabel}
+                      </span>
                     </div>
                   );
                 })}
