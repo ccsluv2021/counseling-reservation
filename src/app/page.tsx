@@ -201,6 +201,7 @@ export default function Home() {
         blackouts={blackouts}
         settings={settings}
         onOpenReservationModal={handleOpenReservationModal}
+        onRefresh={fetchReservations}
       />
 
       {/* 2. 예약 신청 모달 */}
