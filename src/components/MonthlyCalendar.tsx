@@ -25,9 +25,10 @@ interface MonthlyCalendarProps {
  * [MonthlyCalendar.tsx] 월간 달력(Monthly Grid) 기반 뷰 컴포넌트
  * 
  * - 한눈에 이번 달 전체 일정을 조망할 수 있는 7열(일~토) 달력
- * - 각 날짜 칸에 파란색 칩으로 '권x한 11-12', '윤x욱 13-16' 형태로 통일 표기
+ * - 각 날짜 칸에 파란색/보라색 칩으로 '권x한 11-12' 형태로 소속 및 시간 표기
  * - 하루에 3건 이상 예약 시 상위 2건 + '+N건 더보기' 표기
- * - 날짜 칸 또는 칩을 클릭하면 해당 일자의 상세 시간표 및 예약 팝업이 바로 열림
+ * - 날짜 칸 또는 칩을 클릭하면 해당 일자의 상세 시간표 및 예약/취소 팝업이 바로 열림
+ * - 상단 제목 옆의 '상담실 월간 현황' 서브 텍스트 제거 완료
  * ==============================================================================
  */
 export default function MonthlyCalendar({
@@ -127,11 +128,10 @@ export default function MonthlyCalendar({
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-center">
             <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
               {year}년 {month + 1}월
             </h2>
-            <span className="text-xs font-medium text-gray-400">상담실 월간 현황</span>
           </div>
 
           <button
@@ -277,7 +277,7 @@ export default function MonthlyCalendar({
                 )}
               </div>
 
-              {/* 하단: 호버 시 살짝 나타나는 '예약 현황 보기' 가이드 */}
+              {/* 하단: 호버 시 살짝 나타나는 '예약 가능' 가이드 */}
               <div className="text-[10px] text-gray-400 group-hover:text-blue-600 transition-colors pt-1 text-right">
                 {cell.isCurrentMonth && !isSunday && dayReservations.length === 0 && (
                   <span className="opacity-0 group-hover:opacity-100 text-[10px] text-emerald-600">

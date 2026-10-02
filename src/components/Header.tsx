@@ -9,7 +9,7 @@ import { Sparkles } from 'lucide-react';
  * 
  * - 브랜드 로고: 대전서구 청년공간 청춘스럽 공식 로고 (/logo.png) 적용
  * - 브랜드 타이틀: '청춘스럽 1:1 상담실 예약'
- * - 깔끔하고 현대적인 헤더 디자인으로 사용자에게 공식 서비스로서의 신뢰감 제공
+ * - 사용자 피드백 반영: '일정 공유 시스템' 문구 제거 -> '청춘스럽 근무자 · 외부 상담사 전용'
  * ==============================================================================
  */
 export default function Header() {
@@ -45,7 +45,7 @@ export default function Header() {
               </span>
             </div>
             <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">
-              청춘스럽 근무자 · 외부 상담사 전용 일정 공유 시스템
+              청춘스럽 근무자 · 외부 상담사 전용
             </p>
           </div>
         </div>
