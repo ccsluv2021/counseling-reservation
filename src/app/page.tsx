@@ -14,7 +14,9 @@ import { Sparkles, Info, Clock, Calendar as CalendarIcon, CalendarDays } from 'l
  * ==============================================================================
  * [page.tsx] 청춘스럽 1:1 상담실 예약 시스템 메인 페이지
  * 
- * - 상단: 청춘스럽 공식 로고 및 배너 (타이틀/안내문구 모바일에서도 한 줄씩 완벽 정돈)
+ * - 상단: 청춘스럽 공식 로고 및 배너
+ *   - 휴대폰(모바일): 예약가능시간 카드를 아담하고 슬림하게 축소하여 가독성 확보
+ *   - PC/태블릿: 큼직하고 시원한 원래 크기 유지
  * - 보기 모드: [월간 달력] ↔ [주간 달력] 월~토 6열 그리드 전환
  *   1) 월간 달력: 소속별 색상 뱃지(+1, +2)로 깔끔하게 전체 조망
  *   2) 주간 달력: '26년 10월 1주 단위로 '이름 시간' 한 줄 표기
@@ -111,7 +113,7 @@ export default function Home() {
         <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-4 sm:p-7 text-white shadow-md">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
             
-            {/* 좌측 영역: 타이틀 및 안내 (갤럭시/아이폰/PC 모두 어색한 줄바꿈 없이 1줄씩 표시) */}
+            {/* 좌측 영역: 타이틀 및 안내 */}
             <div className="space-y-1 sm:space-y-2 max-w-xl">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] sm:text-xs font-semibold text-white backdrop-blur-xs whitespace-nowrap">
                 <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -127,14 +129,14 @@ export default function Home() {
               </p>
             </div>
 
-            {/* 우측 영역: 예약가능시간 카드 */}
+            {/* 우측 영역: 예약가능시간 카드 (휴대폰에서는 슬림하게, PC에서는 여유있게) */}
             <div className="shrink-0">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 sm:p-5 border border-white/20 shadow-inner w-full md:w-64">
-                <div className="flex items-center gap-1.5 font-bold text-blue-100 mb-2 text-xs sm:text-sm">
-                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-200" />
+              <div className="bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-2.5 sm:p-4 md:p-5 border border-white/20 shadow-inner w-full sm:w-56 md:w-64">
+                <div className="flex items-center gap-1.5 font-bold text-blue-100 mb-1 sm:mb-2 text-[11px] sm:text-sm">
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-blue-200" />
                   <span>예약가능시간</span>
                 </div>
-                <div className="space-y-1 text-xs sm:text-sm">
+                <div className="space-y-0.5 sm:space-y-1 text-[11px] sm:text-sm">
                   <div className="flex items-center justify-between gap-3 py-0.5 border-b border-white/10">
                     <span className="font-semibold text-blue-200">월 - 금</span>
                     <span className="font-bold font-mono text-white">11:00 - 21:00</span>
@@ -144,7 +146,7 @@ export default function Home() {
                     <span className="font-bold font-mono text-white">11:00 - 19:00</span>
                   </div>
                 </div>
-                <div className="mt-2 pt-1.5 border-t border-white/10 text-[10px] sm:text-[11px] text-blue-200/90 text-right">
+                <div className="mt-1 sm:mt-2 pt-1 sm:pt-1.5 border-t border-white/10 text-[9.5px] sm:text-[11px] text-blue-200/80 text-right">
                   ※ 일요일 및 공휴일 휴관
                 </div>
               </div>
