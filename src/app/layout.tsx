@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "청년공간 1:1 상담실 예약 시스템",
-  description: "청년공간 근무자, 외부 상담사, 버크만 1:1 디브리퍼 전용 간편 예약 시스템",
+  title: "청춘스럽 1:1 상담실 예약 시스템",
+  description: "청춘스럽 근무자 및 외부 상담사 전용 간편 예약 시스템",
 };
 
 export default function RootLayout({
