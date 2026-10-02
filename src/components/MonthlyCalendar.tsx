@@ -22,12 +22,12 @@ interface MonthlyCalendarProps {
 
 /**
  * ==============================================================================
- * [MonthlyCalendar.tsx] 월간 달력(Monthly Grid) 기반 뷰 컴포넌트
+ * [MonthlyCalendar.tsx] 월~토 6열 그리드 월간 달력 컴포넌트
  * 
- * - 한눈에 이번 달 전체 일정을 조망할 수 있는 7열(일~토) 달력
- * - 모바일(스마트폰): 칩을 2줄(위: 권x한 / 아래: 14-15)로 깔끔하게 배치하여 이름이 잘리지 않음
+ * - 일요일(정기 휴무일)을 완전히 제외하여 가로 칸 폭을 17.5% 대폭 확장
+ * - 월, 화, 수, 목, 금, 토 6열 그리드로만 구성되어 모바일에서도 칸이 널찍함
+ * - 모바일(스마트폰): 위:이름 / 아래:시간 2줄 칩으로 글자 잘림 완벽 방지
  * - PC/태블릿: 1줄 풀 칩 표기 (권x한 11-12)
- * - 날짜 칸 클릭 시 시간대별 상세 팝업 오픈 및 예약/취소 지원
  * ==============================================================================
  */
 export default function MonthlyCalendar({
@@ -55,59 +55,55 @@ export default function MonthlyCalendar({
     onChangeMonth(new Date());
   };
 
-  // 달력 그리드 계산 (해당 월 1일의 요일 및 말일 계산)
-  const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0(일) ~ 6(토)
-  const lastDate = new Date(year, month + 1, 0).getDate(); // 해당 월 마지막 일수
-  const prevMonthLastDate = new Date(year, month, 0).getDate(); // 이전 달 마지막 일수
+  // -------------------------------------------------------------
+  // [일요일 제외] 월~토 6열 달력 날짜 셀 계산
+  // -------------------------------------------------------------
+  const firstDateObj = new Date(year, month, 1);
+  const firstDay = firstDateObj.getDay(); // 0:일, 1:월, ..., 6:토
 
-  // 달력에 표시할 날짜 셀 배열 생성 (총 35개 또는 42개)
+  // 시작 월요일 계산 (1일이 일요일이면 2일부터, 아니면 해당 주의 월요일부터)
+  const startDate = new Date(year, month, 1);
+  if (firstDay === 0) {
+    startDate.setDate(2);
+  } else {
+    startDate.setDate(1 - (firstDay - 1));
+  }
+
+  // 말일 및 마지막 토요일 계산
+  const lastDateObj = new Date(year, month + 1, 0);
+  const lastDay = lastDateObj.getDay();
+  const endDate = new Date(year, month + 1, 0);
+  if (lastDay === 0) {
+    endDate.setDate(lastDateObj.getDate() - 1);
+  } else {
+    endDate.setDate(lastDateObj.getDate() + (6 - lastDay));
+  }
+
+  // 시작 월요일부터 마지막 토요일까지 일요일(0)을 제외하고 셀 생성
   const calendarCells = [];
-
-  // 1) 이전 달 날짜 채우기
-  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-    const d = prevMonthLastDate - i;
-    const dateObj = new Date(year, month - 1, d);
-    calendarCells.push({
-      dateStr: formatDate(dateObj),
-      dayNumber: d,
-      isCurrentMonth: false,
-      dayOfWeek: dateObj.getDay(),
-    });
-  }
-
-  // 2) 이번 달 날짜 채우기
-  for (let d = 1; d <= lastDate; d++) {
-    const dateObj = new Date(year, month, d);
-    calendarCells.push({
-      dateStr: formatDate(dateObj),
-      dayNumber: d,
-      isCurrentMonth: true,
-      dayOfWeek: dateObj.getDay(),
-    });
-  }
-
-  // 3) 다음 달 날짜 채우기 (7의 배수로 맞춤)
-  const remainingCells = 7 - (calendarCells.length % 7);
-  if (remainingCells < 7) {
-    for (let d = 1; d <= remainingCells; d++) {
-      const dateObj = new Date(year, month + 1, d);
+  const curr = new Date(startDate);
+  while (curr <= endDate) {
+    const dayOfWeek = curr.getDay();
+    if (dayOfWeek !== 0) {
+      // 일요일은 완전 제외!
       calendarCells.push({
-        dateStr: formatDate(dateObj),
-        dayNumber: d,
-        isCurrentMonth: false,
-        dayOfWeek: dateObj.getDay(),
+        dateStr: formatDate(curr),
+        dayNumber: curr.getDate(),
+        isCurrentMonth: curr.getMonth() === month,
+        dayOfWeek: dayOfWeek,
       });
     }
+    curr.setDate(curr.getDate() + 1);
   }
 
+  // 월 ~ 토 요일 레이블 (일요일 제외 6개)
   const weekDayLabels = [
-    { label: '일', isSunday: true, isSaturday: false },
-    { label: '월', isSunday: false, isSaturday: false },
-    { label: '화', isSunday: false, isSaturday: false },
-    { label: '수', isSunday: false, isSaturday: false },
-    { label: '목', isSunday: false, isSaturday: false },
-    { label: '금', isSunday: false, isSaturday: false },
-    { label: '토', isSunday: false, isSaturday: true },
+    { label: '월', isSaturday: false },
+    { label: '화', isSaturday: false },
+    { label: '수', isSaturday: false },
+    { label: '목', isSaturday: false },
+    { label: '금', isSaturday: false },
+    { label: '토', isSaturday: true },
   ];
 
   return (
@@ -160,13 +156,13 @@ export default function MonthlyCalendar({
 
       </div>
 
-      {/* 2. 요일 헤더 (일 ~ 토) */}
-      <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/70 text-center text-xs font-bold py-2 sm:py-2.5">
+      {/* 2. 요일 헤더 (월 ~ 토, 6열) */}
+      <div className="grid grid-cols-6 border-b border-gray-200 bg-gray-50/70 text-center text-xs font-bold py-2 sm:py-2.5">
         {weekDayLabels.map((w, idx) => (
           <div
             key={idx}
             className={`${
-              w.isSunday ? 'text-red-500' : w.isSaturday ? 'text-blue-600' : 'text-gray-700'
+              w.isSaturday ? 'text-blue-600' : 'text-gray-700'
             }`}
           >
             {w.label}
@@ -174,11 +170,10 @@ export default function MonthlyCalendar({
         ))}
       </div>
 
-      {/* 3. 7열 월간 달력 날짜 그리드 */}
-      <div className="grid grid-cols-7 divide-x divide-y divide-gray-200 border-b border-gray-200">
+      {/* 3. 6열(월~토) 월간 달력 날짜 그리드 */}
+      <div className="grid grid-cols-6 divide-x divide-y divide-gray-200 border-b border-gray-200">
         {calendarCells.map((cell, idx) => {
           const isToday = cell.dateStr === todayStr;
-          const isSunday = cell.dayOfWeek === 0;
           const isSaturday = cell.dayOfWeek === 6;
 
           // 해당 날짜의 확정 예약 목록 필터링
@@ -198,7 +193,7 @@ export default function MonthlyCalendar({
             <div
               key={idx}
               onClick={() => onSelectDate(cell.dateStr)}
-              className={`min-h-[90px] sm:min-h-[125px] p-1 sm:p-2 flex flex-col justify-between transition-colors cursor-pointer group ${
+              className={`min-h-[95px] sm:min-h-[130px] p-1 sm:p-2 flex flex-col justify-between transition-colors cursor-pointer group ${
                 cell.isCurrentMonth ? 'bg-white hover:bg-blue-50/30' : 'bg-gray-50/40 text-gray-400'
               } ${isToday ? 'bg-blue-50/20' : ''}`}
             >
@@ -208,8 +203,6 @@ export default function MonthlyCalendar({
                   className={`text-[11px] sm:text-xs font-bold inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all ${
                     isToday
                       ? 'bg-blue-600 text-white shadow-xs'
-                      : isSunday
-                      ? 'text-red-500'
                       : isSaturday
                       ? 'text-blue-600'
                       : cell.isCurrentMonth
@@ -220,13 +213,7 @@ export default function MonthlyCalendar({
                   {cell.dayNumber}
                 </span>
 
-                {/* 일요일 정기 휴무 뱃지 */}
-                {isSunday && (
-                  <span className="text-[9px] sm:text-[10px] text-red-500 font-medium px-0.5 sm:px-1 bg-red-50 rounded">
-                    휴무
-                  </span>
-                )}
-                {/* 차단 일정 존재 시 뱃지 */}
+                {/* 차단/점검 일정 존재 시 뱃지 */}
                 {dayBlackouts.length > 0 && (
                   <span
                     className="text-[9px] sm:text-[10px] text-amber-700 font-medium px-0.5 sm:px-1 bg-amber-50 rounded flex items-center gap-0.5"
@@ -238,7 +225,7 @@ export default function MonthlyCalendar({
                 )}
               </div>
 
-              {/* 중앙: 예약 칩 리스트 */}
+              {/* 중앙: 예약 칩 리스트 (6열이라 칸이 넓어져 더욱 또렷함) */}
               <div className="flex-1 space-y-1 overflow-hidden py-0.5">
                 {visibleReservations.map((res) => {
                   const startHour = res.start_time.split(':')[0];
@@ -258,7 +245,7 @@ export default function MonthlyCalendar({
                       className={`${chipBgClass} border rounded-md p-0.5 sm:px-1.5 sm:py-0.5 text-center shadow-2xs transition`}
                       title={`[${res.user_category}] ${maskedName} (${res.start_time}~${res.end_time}) - ${res.purpose}`}
                     >
-                      {/* 모바일(스마트폰): 2줄로 표시하여 이름 3글자가 전혀 안 잘림! */}
+                      {/* 모바일(스마트폰): 2줄로 표시 */}
                       <div className="sm:hidden flex flex-col items-center leading-tight">
                         <span className="text-[10px] font-bold truncate w-full">{maskedName}</span>
                         <span className={`${timeTextClass} text-[9px] font-mono leading-none mt-0.5`}>
@@ -287,7 +274,7 @@ export default function MonthlyCalendar({
 
               {/* 하단: 호버 시 나타나는 '예약 가능' 가이드 */}
               <div className="hidden sm:block text-[10px] text-gray-400 group-hover:text-blue-600 transition-colors pt-0.5 text-right">
-                {cell.isCurrentMonth && !isSunday && dayReservations.length === 0 && (
+                {cell.isCurrentMonth && dayReservations.length === 0 && (
                   <span className="opacity-0 group-hover:opacity-100 text-[10px] text-emerald-600">
                     +예약 가능
                   </span>
