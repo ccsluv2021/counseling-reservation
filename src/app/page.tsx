@@ -14,7 +14,7 @@ import { Sparkles, Info, Clock, Calendar as CalendarIcon, CalendarDays } from 'l
  * ==============================================================================
  * [page.tsx] 청춘스럽 1:1 상담실 예약 시스템 메인 페이지
  * 
- * - 상단: 청춘스럽 공식 로고 및 예약가능시간 카드 배너
+ * - 상단: 청춘스럽 공식 로고 및 배너 (타이틀/안내문구 모바일에서도 한 줄씩 완벽 정돈)
  * - 보기 모드: [월간 달력] ↔ [주간 달력] 월~토 6열 그리드 전환
  *   1) 월간 달력: 소속별 색상 뱃지(+1, +2)로 깔끔하게 전체 조망
  *   2) 주간 달력: '26년 10월 1주 단위로 '이름 시간' 한 줄 표기
@@ -108,43 +108,43 @@ export default function Home() {
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 space-y-4 sm:space-y-6">
         
         {/* 상단 소개 및 예약가능시간 배너 (좌우 2단 배치) */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-5 sm:p-7 text-white shadow-md">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-4 sm:p-7 text-white shadow-md">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
             
-            {/* 좌측 영역: 타이틀 및 안내 */}
-            <div className="space-y-2 max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 text-xs font-semibold text-white backdrop-blur-xs">
-                <Sparkles className="w-3.5 h-3.5" />
+            {/* 좌측 영역: 타이틀 및 안내 (갤럭시/아이폰/PC 모두 어색한 줄바꿈 없이 1줄씩 표시) */}
+            <div className="space-y-1 sm:space-y-2 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] sm:text-xs font-semibold text-white backdrop-blur-xs whitespace-nowrap">
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>청춘스럽 1:1 상담실 예약 시스템</span>
               </div>
               
-              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight leading-snug">
-                원하는 날짜를 선택하여 실시간으로 상담실을 예약하세요
+              <h2 className="text-sm sm:text-lg md:text-xl font-bold tracking-tight whitespace-nowrap">
+                원하는 날짜를 선택하여 실시간으로 예약하세요
               </h2>
 
-              <p className="text-xs sm:text-sm text-blue-100 leading-relaxed">
-                날짜를 클릭하면 시간대별 예약 현황 확인 및 즉시 예약·취소가 가능합니다.
+              <p className="text-[11px] sm:text-xs text-blue-100 whitespace-nowrap">
+                날짜 클릭 시 시간대별 예약 현황 확인 및 즉시 예약·취소 가능
               </p>
             </div>
 
             {/* 우측 영역: 예약가능시간 카드 */}
             <div className="shrink-0">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20 shadow-inner w-full md:w-64">
-                <div className="flex items-center gap-1.5 font-bold text-blue-100 mb-2.5 text-xs sm:text-sm">
-                  <Clock className="w-4 h-4 text-blue-200" />
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 sm:p-5 border border-white/20 shadow-inner w-full md:w-64">
+                <div className="flex items-center gap-1.5 font-bold text-blue-100 mb-2 text-xs sm:text-sm">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-200" />
                   <span>예약가능시간</span>
                 </div>
-                <div className="space-y-1.5 text-xs sm:text-sm">
-                  <div className="flex items-center justify-between gap-3 py-1 border-b border-white/10">
+                <div className="space-y-1 text-xs sm:text-sm">
+                  <div className="flex items-center justify-between gap-3 py-0.5 border-b border-white/10">
                     <span className="font-semibold text-blue-200">월 - 금</span>
                     <span className="font-bold font-mono text-white">11:00 - 21:00</span>
                   </div>
-                  <div className="flex items-center justify-between gap-3 py-1">
+                  <div className="flex items-center justify-between gap-3 py-0.5">
                     <span className="font-semibold text-blue-200">토</span>
                     <span className="font-bold font-mono text-white">11:00 - 19:00</span>
                   </div>
                 </div>
-                <div className="mt-2.5 pt-2 border-t border-white/10 text-[11px] text-blue-200/90 text-right">
+                <div className="mt-2 pt-1.5 border-t border-white/10 text-[10px] sm:text-[11px] text-blue-200/90 text-right">
                   ※ 일요일 및 공휴일 휴관
                 </div>
               </div>
