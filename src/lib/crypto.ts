@@ -16,12 +16,12 @@ const ENCRYPTION_KEY = crypto.createHash('sha256').update(SECRET_KEY_RAW).digest
 const ALGORITHM = 'aes-256-gcm'; // 인증 태그(Auth Tag)를 지원하는 가장 강력한 표준 암호화 알고리즘
 
 /**
- * 1. 이름 마스킹 함수 (가운데 글자 * 처리)
+ * 1. 이름 마스킹 함수 (가운데 글자 x 처리)
  * 
  * @example
- * maskName("홍길동") -> "홍*동"
- * maskName("김철")   -> "김*"
- * maskName("남궁선우") -> "남**우"
+ * maskName("권세한") -> "권x한"
+ * maskName("김철")   -> "김x"
+ * maskName("남궁선우") -> "남xx우"
  */
 export function maskName(name: string): string {
   if (!name) return '';
@@ -32,16 +32,25 @@ export function maskName(name: string): string {
     return trimmed;
   }
   if (len === 2) {
-    // 2글자: 첫 글자만 보이고 뒤는 *
-    return trimmed[0] + '*';
+    // 2글자: 첫 글자만 보이고 뒤는 x
+    return trimmed[0] + 'x';
   }
   if (len === 3) {
-    // 3글자: 첫 글자와 마지막 글자 사이를 * 처리
-    return trimmed[0] + '*' + trimmed[2];
+    // 3글자: 첫 글자와 마지막 글자 사이를 x 처리
+    return trimmed[0] + 'x' + trimmed[2];
   }
-  // 4글자 이상: 첫 글자와 마지막 글자만 남기고 중간을 *로 채움
-  const middleStars = '*'.repeat(len - 2);
-  return trimmed[0] + middleStars + trimmed[len - 1];
+  // 4글자 이상: 첫 글자와 마지막 글자만 남기고 중간을 x로 채움
+  const middleX = 'x'.repeat(len - 2);
+  return trimmed[0] + middleX + trimmed[len - 1];
+}
+
+/**
+ * 화면 표출용 이름 마스킹 보정 함수
+ * DB에 기존에 '*'로 저장된 이름도 'x'로 깔끔하게 치환하여 통일 표기
+ */
+export function formatDisplayMaskedName(name: string): string {
+  if (!name) return '';
+  return name.replace(/\*/g, 'x');
 }
 
 /**
