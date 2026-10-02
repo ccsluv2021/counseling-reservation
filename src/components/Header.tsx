@@ -36,7 +36,7 @@ export default function Header({ onOpenCancelModal, onOpenAdminModal }: HeaderPr
               </span>
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
-              청년공간 근무자 · 외부 상담사 · 버크만 1:1 디브리퍼 전용 일정 공유 시스템
+              청년공간 근무자 · 외부 상담사 전용 일정 공유 시스템
             </p>
           </div>
         </div>

@@ -164,7 +164,7 @@ export default function Home() {
             <li className="flex items-start gap-2">
               <span className="text-blue-600 font-bold">•</span>
               <span>
-                <b>이용 대상:</b> 청년공간 상주 근무자, 위촉 외부 상담사, 버크만 1:1 디브리퍼에 한하여 단독 예약 및 사용 가능
+                <b>이용 대상:</b> 청년공간 상주 근무자, 위촉 외부 상담사에 한하여 단독 예약 및 사용 가능
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -188,7 +188,7 @@ export default function Home() {
       <footer className="border-t border-gray-200 bg-white py-6 mt-12 text-center text-xs text-gray-500">
         <p>© 2026 청년공간 상담실 예약 시스템. All rights reserved.</p>
         <p className="mt-1 text-gray-400">
-          청년공간 근무자 · 외부 상담사 · 버크만 1:1 디브리퍼 안전 예약 플랫폼
+          청년공간 근무자 · 외부 상담사 안전 예약 플랫폼
         </p>
       </footer>
 

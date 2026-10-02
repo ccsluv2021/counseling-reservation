@@ -404,27 +404,27 @@ export default function AdminDashboard() {
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
-            <div className="flex items-center justify-between text-emerald-700 text-xs font-medium">
-              <span>외부 위촉 상담사</span>
-              <Users className="w-4 h-4 text-emerald-500" />
-            </div>
-            <div className="mt-2 text-2xl font-extrabold text-emerald-700">
-              {counselorCount}
-              <span className="text-xs font-normal text-gray-400 ml-1">건</span>
-            </div>
-            <div className="mt-1 text-[11px] text-gray-500">청년 1:1 심리상담</div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
             <div className="flex items-center justify-between text-purple-700 text-xs font-medium">
-              <span>버크만 디브리퍼</span>
+              <span>외부 위촉 상담사</span>
               <Users className="w-4 h-4 text-purple-500" />
             </div>
             <div className="mt-2 text-2xl font-extrabold text-purple-700">
-              {birkmanCount}
+              {counselorCount}
               <span className="text-xs font-normal text-gray-400 ml-1">건</span>
             </div>
-            <div className="mt-1 text-[11px] text-gray-500">버크만 진단 세션</div>
+            <div className="mt-1 text-[11px] text-gray-500">외부 전문 상담 세션</div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
+            <div className="flex items-center justify-between text-red-600 text-xs font-medium">
+              <span>취소된 예약 내역</span>
+              <XCircle className="w-4 h-4 text-red-500" />
+            </div>
+            <div className="mt-2 text-2xl font-extrabold text-red-600">
+              {cancelledReservations.length}
+              <span className="text-xs font-normal text-gray-400 ml-1">건</span>
+            </div>
+            <div className="mt-1 text-[11px] text-gray-500">본인 취소 및 직권 취소</div>
           </div>
         </section>
 
@@ -449,9 +449,8 @@ export default function AdminDashboard() {
                 className="text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-hidden"
               >
                 <option value="ALL">전체 소속</option>
-                <option value="청년공간 근무자">청년공간 근무자</option>
-                <option value="외부 상담사">외부 상담사</option>
-                <option value="버크만 디브리퍼">버크만 디브리퍼</option>
+                <option value="청년공간 근무자">청년공간 근무자 (파랑)</option>
+                <option value="외부 상담사">외부 상담사 (보라)</option>
               </select>
 
               <div className="relative">

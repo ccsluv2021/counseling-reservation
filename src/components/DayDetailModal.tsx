@@ -163,15 +163,25 @@ export default function DayDetailModal({
                     <div className="flex-1 px-3">
                       {reservedItem ? (
                         <div className="flex items-center gap-2 flex-wrap">
-                          {/* 파란색 칩 통일 (권x한 11-12) */}
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-100/80 px-2.5 py-1 rounded-md border border-blue-300/70">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                            <span>{formatDisplayMaskedName(reservedItem.masked_name)}</span>
-                            <span className="text-blue-500 font-medium text-[11px]">
-                              ({reservedItem.start_time.slice(0, 2)}-{reservedItem.end_time.slice(0, 2)})
+                          {/* 소속별 칩 분기 (근무자: 파랑, 외부 상담사: 보라) */}
+                          {reservedItem.user_category === '청년공간 근무자' ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-100/90 px-2.5 py-1 rounded-md border border-blue-300">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                              <span>{formatDisplayMaskedName(reservedItem.masked_name)}</span>
+                              <span className="text-blue-600 font-medium text-[11px]">
+                                ({reservedItem.start_time.slice(0, 2)}-{reservedItem.end_time.slice(0, 2)})
+                              </span>
                             </span>
-                          </span>
-                          <span className="text-[11px] text-gray-500 truncate max-w-[180px]">
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-100/90 px-2.5 py-1 rounded-md border border-purple-300">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                              <span>{formatDisplayMaskedName(reservedItem.masked_name)}</span>
+                              <span className="text-purple-600 font-medium text-[11px]">
+                                ({reservedItem.start_time.slice(0, 2)}-{reservedItem.end_time.slice(0, 2)})
+                              </span>
+                            </span>
+                          )}
+                          <span className="text-[11px] text-gray-600 truncate max-w-[180px]">
                             {reservedItem.purpose}
                           </span>
                         </div>

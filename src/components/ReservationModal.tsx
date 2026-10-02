@@ -257,31 +257,34 @@ export default function ReservationModal({
                 </div>
               </div>
 
-              {/* 2. 소속 구분 선택 */}
+              {/* 2. 소속 구분 선택 (청년공간 근무자 / 외부 상담사) */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                   예약자 소속 <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['외부 상담사', '청년공간 근무자', '버크만 디브리퍼'] as UserCategory[]).map(
-                    (cat) => {
-                      const isSelected = userCategory === cat;
-                      return (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setUserCategory(cat)}
-                          className={`py-2 px-1 text-xs font-semibold rounded-lg border transition cursor-pointer truncate ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white border-indigo-600'
-                              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                          }`}
-                        >
-                          {cat}
-                        </button>
-                      );
-                    }
-                  )}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUserCategory('청년공간 근무자')}
+                    className={`py-2 px-2 text-xs font-bold rounded-lg border transition cursor-pointer ${
+                      userCategory === '청년공간 근무자'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    청년공간 근무자 (파랑)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUserCategory('외부 상담사')}
+                    className={`py-2 px-2 text-xs font-bold rounded-lg border transition cursor-pointer ${
+                      userCategory === '외부 상담사'
+                        ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    외부 상담사 (보라)
+                  </button>
                 </div>
               </div>
 
@@ -292,7 +295,7 @@ export default function ReservationModal({
                     예약자 성함 <span className="text-red-500">*</span>
                   </label>
                   <span className="text-[11px] text-gray-500">
-                    캘린더에는 <b>홍*동</b>으로 마스킹되어 안전하게 표시됩니다.
+                    캘린더에는 <b>홍x동</b>으로 마스킹되어 안전하게 표시됩니다.
                   </span>
                 </div>
                 <div className="relative">

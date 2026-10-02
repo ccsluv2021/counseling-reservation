@@ -248,14 +248,21 @@ export default function MonthlyCalendar({
                   const timeLabel = `${parseInt(startHour, 10)}-${parseInt(endHour, 10)}`;
                   const maskedName = formatDisplayMaskedName(res.masked_name);
 
+                  // 소속별 칩 색상 분기 (근무자: 파란색, 외부 상담사: 보라색)
+                  const isStaff = res.user_category === '청년공간 근무자';
+                  const chipBgClass = isStaff
+                    ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200/90'
+                    : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200/90';
+                  const timeTextClass = isStaff ? 'text-blue-600' : 'text-purple-600';
+
                   return (
                     <div
                       key={res.id}
-                      className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/90 rounded-md px-1.5 py-0.5 text-[11px] font-semibold flex items-center justify-between gap-1 shadow-2xs truncate"
-                      title={`${maskedName} (${res.start_time}~${res.end_time}) - ${res.purpose}`}
+                      className={`${chipBgClass} border rounded-md px-1.5 py-0.5 text-[11px] font-semibold flex items-center justify-between gap-1 shadow-2xs truncate transition`}
+                      title={`[${res.user_category}] ${maskedName} (${res.start_time}~${res.end_time}) - ${res.purpose}`}
                     >
                       <span className="truncate">{maskedName}</span>
-                      <span className="text-blue-600 text-[10px] font-mono shrink-0">
+                      <span className={`${timeTextClass} text-[10px] font-mono shrink-0`}>
                         {timeLabel}
                       </span>
                     </div>
@@ -264,7 +271,7 @@ export default function MonthlyCalendar({
 
                 {/* +N건 더보기 칩 */}
                 {hiddenCount > 0 && (
-                  <div className="text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-100/60 hover:bg-blue-100 rounded px-1.5 py-0.5 text-center transition">
+                  <div className="text-[10px] font-bold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded px-1.5 py-0.5 text-center transition">
                     +{hiddenCount}건 더보기
                   </div>
                 )}
@@ -284,17 +291,23 @@ export default function MonthlyCalendar({
         })}
       </div>
 
-      {/* 4. 하단 친절한 이용 안내 배너 */}
-      <div className="p-4 bg-blue-50/40 border-t border-blue-100 text-xs text-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* 4. 하단 친절한 이용 안내 및 소속별 칩 범례 */}
+      <div className="p-4 bg-gray-50/70 border-t border-gray-200 text-xs text-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <CalendarIcon className="w-4 h-4 text-blue-600 shrink-0" />
           <span>
-            <b>이용 방법:</b> 달력에서 원하시는 날짜를 클릭하시면, <b>해당 일자의 시간대별 예약 현황을 확인</b>하고 <b>비어 있는 시간에 바로 예약</b>하실 수 있습니다.
+            <b>이용 방법:</b> 날짜를 클릭하면 <b>상세 시간표 확인</b> 및 <b>비어 있는 시간대 예약</b>이 가능합니다.
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-blue-600 font-semibold shrink-0">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-          <span>파란색 칩: 확정된 예약자 및 시간대</span>
+        <div className="flex items-center gap-3 text-xs font-semibold shrink-0">
+          <div className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+            <span>청년공간 근무자 (파랑)</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
+            <span>외부 상담사 (보라)</span>
+          </div>
         </div>
       </div>
 
