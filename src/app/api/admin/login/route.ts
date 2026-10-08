@@ -6,6 +6,9 @@ import { verifyPassword, hashPassword } from '@/lib/crypto';
  * ==============================================================================
  * [POST /api/admin/login]
  * 관리자 마스터 비밀번호 검증 API
+ * 
+ * - DB(space_settings)에 저장된 관리자 비밀번호 해시를 최우선으로 검증
+ * - 변경된 새 비밀번호로만 안전하게 로그인 승인
  * ==============================================================================
  */
 export async function POST(request: NextRequest) {
@@ -22,14 +25,15 @@ export async function POST(request: NextRequest) {
     const envAdminPassword = process.env.ADMIN_PASSWORD || 'admin1234';
     const settings = await getSpaceSettings();
 
-    // 1) 환경변수의 비밀번호와 직접 일치하거나
-    // 2) 설정 DB의 비밀번호 해시와 일치하는지 검증
-    const isDirectMatch = password === envAdminPassword;
-    const isHashMatch = settings.admin_password_hash
-      ? verifyPassword(password, settings.admin_password_hash)
-      : false;
+    // DB에 암호화 해시가 저장되어 있으면 해시로 엄격 검증, 없을 때만 기본값 폴백
+    let isMatch = false;
+    if (settings.admin_password_hash) {
+      isMatch = verifyPassword(password, settings.admin_password_hash);
+    } else {
+      isMatch = password === envAdminPassword;
+    }
 
-    if (!isDirectMatch && !isHashMatch) {
+    if (!isMatch) {
       return NextResponse.json(
         { success: false, message: '관리자 비밀번호가 일치하지 않습니다.' },
         { status: 401 }

@@ -13,7 +13,8 @@ interface AdminLoginModalProps {
  * ==============================================================================
  * [AdminLoginModal.tsx] 관리자 마스터 비밀번호 인증 모달
  * 
- * 청년공간 관리자가 마스터 비밀번호를 입력하고 관리자 대시보드(/admin)로 안전하게 진입
+ * 청춘스럽 공간 관리자가 마스터 비밀번호를 입력하고 관리자 대시보드(/admin)로 안전하게 진입
+ * (보안을 위해 비밀번호 힌트 문구 완전 제거)
  * ==============================================================================
  */
 export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
@@ -50,7 +51,7 @@ export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProp
         return;
       }
 
-      // 로컬 스토리지 및 쿠키에 세션 토큰 저장
+      // 로컬 스토리지에 세션 토큰 저장
       if (data.token) {
         localStorage.setItem('admin_token', data.token);
       }
@@ -85,10 +86,10 @@ export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProp
           </button>
         </div>
 
-        {/* 폼 본문 */}
+        {/* 폼 본문 (힌트 문구 제거) */}
         <form onSubmit={handleLogin} className="p-6 space-y-4">
           <p className="text-xs text-gray-500">
-            청년공간 담당자 전용 메뉴입니다. 설정된 관리자 마스터 비밀번호를 입력해 주세요. (기본값: admin1234)
+            청춘스럽 담당자 전용 메뉴입니다. 관리자 마스터 비밀번호를 입력해 주세요.
           </p>
 
           <div>

@@ -19,6 +19,7 @@ import {
   AlertCircle,
   LogOut,
   Lock,
+  KeyRound,
 } from 'lucide-react';
 import { AdminReservation, BlackoutSlot, SpaceSettings } from '@/types/reservation';
 import { formatKoreanDate } from '@/lib/utils';
@@ -27,8 +28,8 @@ import { formatKoreanDate } from '@/lib/utils';
  * ==============================================================================
  * [admin/page.tsx] 청춘스럽 1:1 상담실 관리자 전용 대시보드
  * 
- * - 미인증 상태일 때 메인으로 튕기지 않고, 인라인 관리자 로그인 폼을 즉시 제공
- * - 비밀번호(기본: admin1234) 입력 후 성공 시 대시보드 전체 잠금 해제
+ * - 미인증 상태일 때 힌트 없는 보안 로그인 폼 제공 (비밀번호 노출 방지)
+ * - 관리자 화면 내에서 [관리자 마스터 비밀번호 실시간 변경] 기능 제공
  * - 전체 예약 목록(마스킹 해제된 원본 성함 및 복호화 연락처) 실시간 조회
  * - 엑셀(CSV) 다운로드, 시설 점검 차단(블랙아웃) 설정, 운영시간 설정
  * ==============================================================================
@@ -36,7 +37,7 @@ import { formatKoreanDate } from '@/lib/utils';
 export default function AdminDashboard() {
   const router = useRouter();
 
-  // 인증 여부 상태 (기본 false)
+  // 인증 여부 상태
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authChecking, setAuthChecking] = useState<boolean>(true);
 
@@ -66,6 +67,12 @@ export default function AdminDashboard() {
   const [saturdayClose, setSaturdayClose] = useState('19:00');
   const [maxHours, setMaxHours] = useState(3);
 
+  // 비밀번호 변경 폼 상태
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [isChangingPw, setIsChangingPw] = useState(false);
+
   // 알림 토스트 메시지
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -93,7 +100,6 @@ export default function AdminDashboard() {
       });
 
       if (resRes.status === 401) {
-        // 토큰이 만료되었거나 올바르지 않으면 로그인 화면 표시
         setIsAuthenticated(false);
         setAuthChecking(false);
         setIsLoading(false);
@@ -133,7 +139,7 @@ export default function AdminDashboard() {
     loadAdminData();
   }, [loadAdminData]);
 
-  // 2. 인라인 로그인 제출 핸들러
+  // 2. 인라인 로그인 제출 핸들러 (비밀번호 힌트 제거)
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -158,7 +164,6 @@ export default function AdminDashboard() {
         return;
       }
 
-      // 토큰 저장 및 인증 상태 갱신
       if (data.token) {
         localStorage.setItem('admin_token', data.token);
       }
@@ -184,7 +189,62 @@ export default function AdminDashboard() {
     showToast('로그아웃되었습니다.');
   };
 
-  // 4. 관리자 직권 예약 취소
+  // 4. 관리자 비밀번호 변경 핸들러
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!currentPw || !newPw || !confirmPw) {
+      showToast('모든 비밀번호 입력란을 채워주세요.', 'error');
+      return;
+    }
+
+    if (newPw !== confirmPw) {
+      showToast('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.', 'error');
+      return;
+    }
+
+    if (newPw.length < 4) {
+      showToast('새 비밀번호는 최소 4자 이상이어야 합니다.', 'error');
+      return;
+    }
+
+    setIsChangingPw(true);
+    try {
+      const token = localStorage.getItem('admin_token') || '';
+      const res = await fetch('/api/admin/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token,
+        },
+        body: JSON.stringify({
+          currentPassword: currentPw,
+          newPassword: newPw,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.message || '비밀번호 변경 실패', 'error');
+        return;
+      }
+
+      if (data.token) {
+        localStorage.setItem('admin_token', data.token);
+      }
+
+      showToast('관리자 마스터 비밀번호가 성공적으로 변경되었습니다!');
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+    } catch (err) {
+      showToast('비밀번호 변경 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsChangingPw(false);
+    }
+  };
+
+  // 5. 관리자 직권 예약 취소
   const handleCancelReservation = async (reservationId: string) => {
     if (!window.confirm('이 예약을 관리자 권한으로 강제 취소하시겠습니까?')) return;
 
@@ -212,7 +272,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 5. 차단 슬롯 추가
+  // 6. 차단 슬롯 추가
   const handleAddBlackout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBoDate || !newBoReason.trim()) {
@@ -246,7 +306,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 6. 차단 슬롯 삭제
+  // 7. 차단 슬롯 삭제
   const handleDeleteBlackout = async (id: string) => {
     if (!window.confirm('해당 시간대의 차단을 해제하시겠습니까?')) return;
 
@@ -269,7 +329,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 7. 운영 설정 저장
+  // 8. 운영 설정 저장
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -298,7 +358,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 8. 엑셀(CSV) 다운로드 함수 (UTF-8 BOM 포함)
+  // 9. 엑셀(CSV) 다운로드 함수
   const handleDownloadCsv = () => {
     if (reservations.length === 0) {
       showToast('다운로드할 예약 데이터가 없습니다.', 'error');
@@ -362,7 +422,7 @@ export default function AdminDashboard() {
   }
 
   // -------------------------------------------------------------
-  // [B. 미인증 상태: 인라인 관리자 로그인 폼] (메인으로 튕기지 않음!)
+  // [B. 미인증 상태: 힌트 없는 보안 로그인 폼]
   // -------------------------------------------------------------
   if (!isAuthenticated) {
     return (
@@ -378,11 +438,11 @@ export default function AdminDashboard() {
             <p className="text-xs text-indigo-200 mt-1">공간 담당자 전용 인증 콘솔</p>
           </div>
 
-          {/* 로그인 폼 */}
+          {/* 로그인 폼 (힌트 완전 제거) */}
           <form onSubmit={handleLoginSubmit} className="p-6 sm:p-8 space-y-5">
             <p className="text-xs text-gray-500 text-center leading-relaxed">
               청춘스럽 담당자 전용 메뉴입니다.<br />
-              설정된 관리자 마스터 비밀번호를 입력해 주세요. (기본값: <b>admin1234</b>)
+              관리자 마스터 비밀번호를 입력해 주세요.
             </p>
 
             <div>
@@ -395,7 +455,7 @@ export default function AdminDashboard() {
                   type="password"
                   required
                   autoFocus
-                  placeholder="비밀번호 입력 (admin1234)"
+                  placeholder="관리자 비밀번호 입력"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
@@ -702,34 +762,35 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        {/* 3. 시설 점검 차단 관리 & 운영 시간 설정 그리드 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* 3. 하단 3개 관리 섹션: 점검 차단 관리 / 운영시간 설정 / 비밀번호 변경 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* 시설 점검 및 행사 일정 차단 (블랙아웃) */}
-          <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+          {/* 3-1. 시설 점검 및 행사 일정 차단 (블랙아웃) */}
+          <section className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs space-y-4">
             <div>
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <Ban className="w-4 h-4 text-amber-600" />
-                <span>상담실 점검 및 행사 차단(블랙아웃)</span>
+                <span>상담실 점검 및 행사 차단</span>
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                대청소, 방역, 센터 자체 행사 시 특정 시간대의 예약을 막아둘 수 있습니다.
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                방역, 센터 행사 시 특정 시간대 예약을 차단합니다.
               </p>
             </div>
 
             {/* 신규 차단 등록 폼 */}
-            <form onSubmit={handleAddBlackout} className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-600 mb-1">차단 날짜</label>
-                  <input
-                    type="date"
-                    required
-                    value={newBoDate}
-                    onChange={(e) => setNewBoDate(e.target.value)}
-                    className="w-full text-xs p-2 border border-gray-300 rounded-lg bg-white"
-                  />
-                </div>
+            <form onSubmit={handleAddBlackout} className="bg-gray-50 rounded-xl p-3.5 border border-gray-200 space-y-2.5">
+              <div>
+                <label className="block text-[11px] font-medium text-gray-600 mb-1">차단 날짜</label>
+                <input
+                  type="date"
+                  required
+                  value={newBoDate}
+                  onChange={(e) => setNewBoDate(e.target.value)}
+                  className="w-full text-xs p-2 border border-gray-300 rounded-lg bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[11px] font-medium text-gray-600 mb-1">시작 시간</label>
                   <input
@@ -759,7 +820,7 @@ export default function AdminDashboard() {
                 <input
                   type="text"
                   required
-                  placeholder="예: 상담실 소독 방역, 센터 자체 청년 프로그램 진행"
+                  placeholder="예: 상담실 소독 방역"
                   value={newBoReason}
                   onChange={(e) => setNewBoReason(e.target.value)}
                   className="w-full text-xs p-2 border border-gray-300 rounded-lg bg-white"
@@ -770,41 +831,38 @@ export default function AdminDashboard() {
                 type="submit"
                 className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg text-xs transition cursor-pointer"
               >
-                해당 시간대 예약 차단 등록
+                예약 차단 등록
               </button>
             </form>
 
             {/* 등록된 차단 목록 */}
             <div className="space-y-2">
-              <h4 className="text-xs font-semibold text-gray-700">현재 등록된 차단 목록 ({blackouts.length}건)</h4>
+              <h4 className="text-xs font-semibold text-gray-700">차단 목록 ({blackouts.length}건)</h4>
               {blackouts.length === 0 ? (
-                <div className="p-4 text-center border border-dashed border-gray-200 rounded-xl text-xs text-gray-400">
-                  현재 설정된 차단 일정이 없습니다.
+                <div className="p-3 text-center border border-dashed border-gray-200 rounded-xl text-[11px] text-gray-400">
+                  설정된 차단 일정이 없습니다.
                 </div>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                   {blackouts.map((bo) => (
                     <div
                       key={bo.id}
-                      className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between text-xs"
+                      className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between text-xs"
                     >
                       <div>
-                        <div className="font-bold text-gray-800 flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                        <div className="font-bold text-gray-800 text-[11px] flex items-center gap-1">
                           <span>{bo.blackout_date}</span>
-                          <span className="text-amber-700 font-semibold">
-                            {bo.start_time} ~ {bo.end_time}
-                          </span>
+                          <span className="text-amber-700">({bo.start_time}~{bo.end_time})</span>
                         </div>
-                        <div className="text-gray-500 mt-0.5">{bo.reason}</div>
+                        <div className="text-gray-500 text-[10px] truncate max-w-[150px]">{bo.reason}</div>
                       </div>
                       <button
                         onClick={() => handleDeleteBlackout(bo.id)}
                         type="button"
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                        className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
                         title="차단 해제"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
@@ -813,22 +871,22 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* 운영 시간 및 정책 설정 */}
-          <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
+          {/* 3-2. 운영 시간 및 정책 설정 */}
+          <section className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs space-y-4">
             <div>
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <Settings className="w-4 h-4 text-indigo-600" />
-                <span>운영 시간 및 정책 간편 설정</span>
+                <span>운영 시간 및 정책 설정</span>
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                평일 및 토요일의 상담실 오픈/마감 시간과 최대 예약 시간을 조정합니다.
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                평일 및 토요일의 상담실 오픈/마감 시간을 조정합니다.
               </p>
             </div>
 
-            <form onSubmit={handleSaveSettings} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSaveSettings} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="block text-[11px] font-semibold text-gray-700 mb-1">
                     평일 시작 시간
                   </label>
                   <input
@@ -840,7 +898,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="block text-[11px] font-semibold text-gray-700 mb-1">
                     평일 종료 시간
                   </label>
                   <input
@@ -853,9 +911,9 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="block text-[11px] font-semibold text-gray-700 mb-1">
                     토요일 시작 시간
                   </label>
                   <input
@@ -867,7 +925,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="block text-[11px] font-semibold text-gray-700 mb-1">
                     토요일 종료 시간
                   </label>
                   <input
@@ -881,8 +939,8 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  1회 최대 연속 예약 가능 시간 (시간)
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                  1회 최대 연속 예약 (시간)
                 </label>
                 <input
                   type="number"
@@ -894,15 +952,84 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-500">
-                📌 <b>정기 휴무 안내:</b> 일요일은 시스템 기본 정기 휴무일로 고정 적용되어 예약이 차단됩니다.
+              <div className="p-2.5 bg-gray-50 rounded-xl text-[11px] text-gray-500">
+                📌 <b>일요일</b>은 정기 휴무일로 고정 적용됩니다.
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs sm:text-sm transition cursor-pointer"
+                className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition cursor-pointer"
               >
-                설정 저장하기
+                운영 설정 저장
+              </button>
+            </form>
+          </section>
+
+          {/* 3-3. 관리자 마스터 비밀번호 변경 (신규 추가) */}
+          <section className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-emerald-600" />
+                <span>관리자 비밀번호 변경</span>
+              </h3>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                관리자 마스터 비밀번호를 안전하게 직접 변경합니다.
+              </p>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                  현재 관리자 비밀번호
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="현재 비밀번호 입력"
+                  value={currentPw}
+                  onChange={(e) => setCurrentPw(e.target.value)}
+                  className="w-full text-xs p-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                  새 관리자 비밀번호
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="새 비밀번호 (4자 이상)"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  className="w-full text-xs p-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                  새 비밀번호 확인
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="새 비밀번호 한 번 더 입력"
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  className="w-full text-xs p-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div className="p-2.5 bg-emerald-50 rounded-xl text-[11px] text-emerald-800">
+                🔒 변경 즉시 암호화 적용되며, 다음 로그인 시부터 새 비밀번호가 요구됩니다.
+              </div>
+
+              <button
+                type="submit"
+                disabled={isChangingPw}
+                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-emerald-300 text-white font-semibold rounded-lg text-xs transition cursor-pointer"
+              >
+                {isChangingPw ? '비밀번호 변경 처리 중...' : '비밀번호 변경하기'}
               </button>
             </form>
           </section>
