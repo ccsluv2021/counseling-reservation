@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSpaceSettings, updateSpaceSettings } from '@/lib/reservationService';
 import { verifyPassword, hashPassword } from '@/lib/crypto';
 
+// DB 초기 마이그레이션 시 생성된 초기 더미 해시값
+const INITIAL_DUMMY_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4';
+
 /**
  * ==============================================================================
  * [POST /api/admin/change-password]
  * 관리자 마스터 비밀번호 실시간 변경 API
  * 
  * - 관리자 권한(토큰) 확인
- * - 현재 비밀번호 검증 후 새 비밀번호를 SHA-256 단방향 해시로 암호화하여 DB 저장
+ * - 현재 비밀번호 검증 후 새 비밀번호를 SHA-256 솔트 해시로 암호화하여 DB 저장
  * - 새로운 세션 토큰을 발급하여 로그인 상태 유지
  * ==============================================================================
  */
@@ -42,13 +45,14 @@ export async function POST(request: NextRequest) {
 
     const settings = await getSpaceSettings();
     const envAdminPassword = process.env.ADMIN_PASSWORD || 'admin1234';
+    const storedHash = settings.admin_password_hash || '';
 
-    // 1. 현재 비밀번호 검증 (DB 해시 우선, 없으면 환경변수 기본값 검증)
+    // 1. 현재 비밀번호 검증
     let isCurrentValid = false;
-    if (settings.admin_password_hash) {
-      isCurrentValid = verifyPassword(currentPassword, settings.admin_password_hash);
+    if (storedHash && storedHash !== INITIAL_DUMMY_HASH) {
+      isCurrentValid = verifyPassword(currentPassword, storedHash);
     } else {
-      isCurrentValid = currentPassword === envAdminPassword;
+      isCurrentValid = currentPassword === envAdminPassword || (storedHash ? verifyPassword(currentPassword, storedHash) : false);
     }
 
     if (!isCurrentValid) {
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. 새 비밀번호 SHA-256 해시 생성 및 DB 업데이트
+    // 2. 새 비밀번호 SHA-256 솔트 해시 생성 및 DB 업데이트
     const newPasswordHash = hashPassword(newPassword);
     await updateSpaceSettings({
       admin_password_hash: newPasswordHash,
