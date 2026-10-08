@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import MonthlyCalendar from '@/components/MonthlyCalendar';
 import WeeklyScheduleList from '@/components/WeeklyScheduleList';
@@ -20,7 +21,7 @@ import { Sparkles, Info, Clock, Calendar as CalendarIcon, CalendarDays } from 'l
  * - 보기 모드: [월간 달력] ↔ [주간 달력] 월~토 6열 그리드 전환
  *   1) 월간 달력: 소속별 색상 뱃지(+1, +2)로 깔끔하게 전체 조망
  *   2) 주간 달력: '26년 10월 1주 단위로 '이름 시간' 한 줄 표기
- * - 하단 이용 수칙: 컴팩트한 글씨 크기와 정돈된 문장으로 어색한 줄바꿈 없이 한눈에 가독
+ * - 하단 푸터: 관리자 콘솔(/admin) 바로가기 은은하게 제공
  * ==============================================================================
  */
 export default function Home() {
@@ -255,8 +256,15 @@ export default function Home() {
       {/* 푸터 */}
       <footer className="border-t border-gray-200 bg-white py-5 mt-8 text-center text-xs text-gray-500">
         <p>© 2026 청춘스럽 상담실 예약 시스템. All rights reserved.</p>
-        <p className="mt-0.5 text-gray-400">
-          청춘스럽 근무자 · 외부 상담사 안전 예약 플랫폼
+        <p className="mt-0.5 text-gray-400 flex items-center justify-center gap-2">
+          <span>청춘스럽 근무자 · 외부 상담사 안전 예약 플랫폼</span>
+          <span>·</span>
+          <Link
+            href="/admin"
+            className="text-gray-400 hover:text-indigo-600 transition underline underline-offset-2"
+          >
+            관리자 콘솔
+          </Link>
         </p>
       </footer>
 

@@ -18,25 +18,34 @@ import {
   XCircle,
   AlertCircle,
   LogOut,
+  Lock,
 } from 'lucide-react';
 import { AdminReservation, BlackoutSlot, SpaceSettings } from '@/types/reservation';
 import { formatKoreanDate } from '@/lib/utils';
 
 /**
  * ==============================================================================
- * [admin/page.tsx] 청년공간 상담실 관리자 전용 대시보드
+ * [admin/page.tsx] 청춘스럽 1:1 상담실 관리자 전용 대시보드
  * 
- * 1. 전체 예약 목록 조회 (복호화된 연락처 & 원본 성함 확인)
- * 2. 예약 통계 및 엑셀(CSV) 다운로드
- * 3. 시설 점검 및 센터 행사 예약 차단(블랙아웃) 설정
- * 4. 운영 시간(평일/주말) 및 정책 실시간 수정
- * 5. 관리자 직권 예약 취소
+ * - 미인증 상태일 때 메인으로 튕기지 않고, 인라인 관리자 로그인 폼을 즉시 제공
+ * - 비밀번호(기본: admin1234) 입력 후 성공 시 대시보드 전체 잠금 해제
+ * - 전체 예약 목록(마스킹 해제된 원본 성함 및 복호화 연락처) 실시간 조회
+ * - 엑셀(CSV) 다운로드, 시설 점검 차단(블랙아웃) 설정, 운영시간 설정
  * ==============================================================================
  */
 export default function AdminDashboard() {
   const router = useRouter();
 
-  // 1. 상태 변수
+  // 인증 여부 상태 (기본 false)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authChecking, setAuthChecking] = useState<boolean>(true);
+
+  // 로그인 폼 상태
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // 대시보드 데이터 상태
   const [reservations, setReservations] = useState<AdminReservation[]>([]);
   const [blackouts, setBlackouts] = useState<BlackoutSlot[]>([]);
   const [settings, setSettings] = useState<SpaceSettings | null>(null);
@@ -57,7 +66,7 @@ export default function AdminDashboard() {
   const [saturdayClose, setSaturdayClose] = useState('19:00');
   const [maxHours, setMaxHours] = useState(3);
 
-  // 알림 메시지 상태
+  // 알림 토스트 메시지
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
@@ -65,26 +74,39 @@ export default function AdminDashboard() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // 2. 관리자 데이터 로드
+  // 1. 관리자 데이터 로드 (토큰 유효성 검증)
   const loadAdminData = useCallback(async () => {
     setIsLoading(true);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
 
-      // 1) 전체 예약 조회
-      const resRes = await fetch('/api/admin/reservations', {
-        headers: { 'x-admin-token': token || '' },
-      });
-      if (resRes.status === 401) {
-        router.push('/');
+      if (!token) {
+        setIsAuthenticated(false);
+        setAuthChecking(false);
+        setIsLoading(false);
         return;
       }
+
+      // 전체 예약 조회 요청
+      const resRes = await fetch('/api/admin/reservations', {
+        headers: { 'x-admin-token': token },
+      });
+
+      if (resRes.status === 401) {
+        // 토큰이 만료되었거나 올바르지 않으면 로그인 화면 표시
+        setIsAuthenticated(false);
+        setAuthChecking(false);
+        setIsLoading(false);
+        return;
+      }
+
       const resData = await resRes.json();
       if (resData.success) {
         setReservations(resData.reservations || []);
+        setIsAuthenticated(true);
       }
 
-      // 2) 설정 및 차단 목록 조회
+      // 설정 및 차단 목록 조회
       const generalRes = await fetch('/api/reservations?startDate=2026-01-01&endDate=2027-12-31');
       const genData = await generalRes.json();
       if (genData.success) {
@@ -102,22 +124,64 @@ export default function AdminDashboard() {
       console.error('관리자 데이터 로드 실패:', err);
       showToast('데이터를 불러오지 못했습니다.', 'error');
     } finally {
+      setAuthChecking(false);
       setIsLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     loadAdminData();
   }, [loadAdminData]);
+
+  // 2. 인라인 로그인 제출 핸들러
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    if (!loginPassword) {
+      setLoginError('관리자 마스터 비밀번호를 입력해 주세요.');
+      return;
+    }
+
+    setIsLoggingIn(true);
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: loginPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setLoginError(data.message || '비밀번호가 올바르지 않습니다.');
+        setIsLoggingIn(false);
+        return;
+      }
+
+      // 토큰 저장 및 인증 상태 갱신
+      if (data.token) {
+        localStorage.setItem('admin_token', data.token);
+      }
+      setIsAuthenticated(true);
+      setLoginPassword('');
+      showToast('관리자 인증에 성공했습니다.');
+      loadAdminData();
+    } catch (err) {
+      console.error('로그인 에러:', err);
+      setLoginError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
 
   // 3. 로그아웃 핸들러
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('admin_token');
     }
-    // 쿠키 제거 요청
     document.cookie = 'admin_token=; Max-Age=0; path=/;';
-    router.push('/');
+    setIsAuthenticated(false);
+    showToast('로그아웃되었습니다.');
   };
 
   // 4. 관리자 직권 예약 취소
@@ -241,7 +305,6 @@ export default function AdminDashboard() {
       return;
     }
 
-    // CSV 헤더 정의
     const headers = [
       '예약ID',
       '예약일자',
@@ -257,7 +320,6 @@ export default function AdminDashboard() {
       '신청일시',
     ];
 
-    // 행 데이터 생성
     const rows = reservations.map((r) => [
       r.id,
       r.reservation_date,
@@ -273,31 +335,113 @@ export default function AdminDashboard() {
       r.created_at,
     ]);
 
-    // 한글 깨짐 방지를 위한 UTF-8 BOM(\uFEFF) 추가
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
-
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute(
-      'download',
-      `청년공간_상담실_예약대장_${new Date().toISOString().split('T')[0]}.csv`
-    );
+    link.setAttribute('download', `청춘스럽_상담실_예약대장_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     showToast('엑셀(CSV) 예약 대장이 다운로드되었습니다.');
   };
 
-  // 통계 계산
+  // -------------------------------------------------------------
+  // [A. 초기 인증 확인 중 로딩 화면]
+  // -------------------------------------------------------------
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-gray-500 font-medium">관리자 권한을 확인하고 있습니다...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // -------------------------------------------------------------
+  // [B. 미인증 상태: 인라인 관리자 로그인 폼] (메인으로 튕기지 않음!)
+  // -------------------------------------------------------------
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-indigo-50/40 to-slate-100 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          
+          {/* 상단 헤더 */}
+          <div className="px-6 py-6 border-b border-gray-100 bg-gradient-to-r from-indigo-900 to-blue-900 text-white text-center">
+            <div className="w-12 h-12 bg-white/10 rounded-2xl backdrop-blur-xs flex items-center justify-center mx-auto mb-3 shadow-inner">
+              <ShieldCheck className="w-7 h-7 text-indigo-300" />
+            </div>
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight">청춘스럽 1:1 상담실 관리자</h1>
+            <p className="text-xs text-indigo-200 mt-1">공간 담당자 전용 인증 콘솔</p>
+          </div>
+
+          {/* 로그인 폼 */}
+          <form onSubmit={handleLoginSubmit} className="p-6 sm:p-8 space-y-5">
+            <p className="text-xs text-gray-500 text-center leading-relaxed">
+              청춘스럽 담당자 전용 메뉴입니다.<br />
+              설정된 관리자 마스터 비밀번호를 입력해 주세요. (기본값: <b>admin1234</b>)
+            </p>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                관리자 마스터 비밀번호
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                <input
+                  type="password"
+                  required
+                  autoFocus
+                  placeholder="비밀번호 입력 (admin1234)"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-300 text-white font-bold rounded-xl text-sm transition shadow-md cursor-pointer"
+            >
+              {isLoggingIn ? '인증 확인 중...' : '관리자 모드 접속'}
+            </button>
+
+            <div className="pt-2 text-center">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 transition"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>일반 예약 화면으로 돌아가기</span>
+              </Link>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    );
+  }
+
+  // -------------------------------------------------------------
+  // [C. 인증 완료: 관리자 전용 대시보드 화면]
+  // -------------------------------------------------------------
   const confirmedReservations = reservations.filter((r) => r.status === 'CONFIRMED');
   const cancelledReservations = reservations.filter((r) => r.status === 'CANCELLED');
   const staffCount = confirmedReservations.filter((r) => r.user_category === '청년공간 근무자').length;
   const counselorCount = confirmedReservations.filter((r) => r.user_category === '외부 상담사').length;
-  const birkmanCount = confirmedReservations.filter((r) => r.user_category === '버크만 디브리퍼').length;
 
-  // 검색 및 필터링된 예약 목록
   const filteredReservations = reservations.filter((r) => {
     const matchesCategory = filterCategory === 'ALL' || r.user_category === filterCategory;
     const matchesKeyword =
@@ -326,8 +470,8 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-6 h-6 text-indigo-400" />
               <div>
-                <h1 className="text-lg font-bold tracking-tight">상담실 관리자 콘솔</h1>
-                <p className="text-[11px] text-indigo-300">청년공간 1:1 상담실 통합 운영 대시보드</p>
+                <h1 className="text-lg font-bold tracking-tight">청춘스럽 상담실 관리자 콘솔</h1>
+                <p className="text-[11px] text-indigo-300">청춘스럽 1:1 상담실 통합 운영 대시보드</p>
               </div>
             </div>
           </div>
@@ -400,7 +544,7 @@ export default function AdminDashboard() {
               {staffCount}
               <span className="text-xs font-normal text-gray-400 ml-1">건</span>
             </div>
-            <div className="mt-1 text-[11px] text-gray-500">내부 회의 및 상담</div>
+            <div className="mt-1 text-[11px] text-gray-500">내부 상담 및 업무</div>
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
@@ -558,10 +702,10 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        {/* 3. 하단 2단 그리드: 시설 점검 차단 관리 & 운영 시간 설정 */}
+        {/* 3. 시설 점검 차단 관리 & 운영 시간 설정 그리드 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* 3-1. 시설 점검 및 행사 일정 차단 (블랙아웃) */}
+          {/* 시설 점검 및 행사 일정 차단 (블랙아웃) */}
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
             <div>
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -669,7 +813,7 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* 3-2. 운영 시간 및 정책 설정 */}
+          {/* 운영 시간 및 정책 설정 */}
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-4">
             <div>
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
