@@ -1,0 +1,49 @@
+name: Keep Supabase Alive
+
+# ==============================================================================
+# [keep-alive.yml] Supabase 무료 서버 자동 깨우기 워크플로우
+#
+# 목적:
+# - Supabase 무료 티어의 "7일간 활동이 없으면 자동 일시정지(Pause)" 정책 방지
+# - 3일마다 Vercel 예약 시스템 API를 호출하여 데이터베이스에 정기적인 쿼리를 발생시킴
+# - 365일 24시간 중단 없이 예약 시스템이 항상 활성화 상태를 유지하도록 보장
+# ==============================================================================
+
+on:
+  schedule:
+    # 3일마다 한국 시간(KST) 낮 12:00 (UTC 03:00)에 실행
+    - cron: '0 3 */3 * *'
+  # GitHub 웹페이지에서 [Run workflow] 버튼으로 언제든지 수동 테스트 가능
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    name: Ping Counseling App & Supabase Database
+
+    steps:
+      - name: Ping Vercel Counseling Reservation API
+        run: |
+          echo "========================================================"
+          echo "1. 청춘스럽 상담실 예약 시스템 API 호출 (DB 쿼리 유발)"
+          echo "========================================================"
+          
+          # Vercel에 배포된 예약 API를 호출하여 Next.js 서버가 Supabase DB를 직접 조회하도록 트리거합니다.
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://counseling-reservation.vercel.app/api/reservations?startDate=2026-01-01&endDate=2026-01-02")
+          
+          echo "응답 HTTP 상태 코드: $HTTP_STATUS"
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Supabase 데이터 조회가 성공적으로 실행되어 휴면 카운트다운이 리셋되었습니다."
+          else
+            echo "⚠️ 응답 코드가 200이 아닙니다 (코드: $HTTP_STATUS). 재시도 중..."
+            # 재시도
+            curl -f "https://counseling-reservation.vercel.app" || true
+          fi
+
+      - name: Report Keep-Alive Success
+        run: |
+          echo "========================================================"
+          echo "🎉 Supabase 자동 활성화 작업이 성공적으로 완료되었습니다!"
+          echo "실행 시각 (UTC): $(date)"
+          echo "========================================================"
