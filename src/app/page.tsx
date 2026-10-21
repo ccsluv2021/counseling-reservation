@@ -22,6 +22,7 @@ import { Sparkles, Info, Clock, Calendar as CalendarIcon, CalendarDays } from 'l
  *   1) 월간 달력: 소속별 색상 뱃지(+1, +2)로 깔끔하게 전체 조망
  *   2) 주간 달력: '26년 10월 1주 단위로 '이름 시간' 한 줄 표기
  * - 하단 푸터: 관리자 콘솔(/admin) 바로가기 은은하게 제공
+ * - [중요 개선]: 클라이언트 실제 날짜 기준 실시간 동기화 (서버 빌드 시점 캐시 무효화)
  * ==============================================================================
  */
 export default function Home() {
@@ -53,6 +54,14 @@ export default function Home() {
   const [isReservationOpen, setIsReservationOpen] = useState(false);
   const [reservationDate, setReservationDate] = useState<string>(() => formatDate(new Date()));
   const [reservationHour, setReservationHour] = useState(14);
+
+  // 클라이언트 마운트 시 실제 사용자 현재 시간으로 동기화 (서버 SSG 캐시 날짜 방지)
+  useEffect(() => {
+    const now = new Date();
+    setCurrentMonth(now);
+    setCurrentWeekDate(now);
+    setReservationDate(formatDate(now));
+  }, []);
 
   // 5. 예약 데이터 조회 (전후 범위)
   const fetchReservations = useCallback(async () => {

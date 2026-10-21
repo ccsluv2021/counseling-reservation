@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -26,6 +26,8 @@ interface MonthlyCalendarProps {
  * - 갤럭시, 아이폰, PC 모두 100% 동일하게 적용
  * - 월간 달력 칸에서는 긴 텍스트 대신 깔끔한 소속별 색깔 뱃지(+1, +2)로 표기
  * - 버튼 텍스트를 '오늘'로 단축하여 모바일 가독성 향상
+ * - [중요 개선]: 서버 빌드 시점의 과거 날짜 캐싱 문제 해결을 위해 클라이언트 마운트 및
+ *   포커스 시점에 실제 오늘 날짜(YYYY-MM-DD)를 실시간 동기화하여 파란 원 하이라이트 정확도 100% 보장
  * ==============================================================================
  */
 export default function MonthlyCalendar({
@@ -35,7 +37,26 @@ export default function MonthlyCalendar({
   blackouts,
   onSelectDate,
 }: MonthlyCalendarProps) {
-  const todayStr = formatDate(new Date());
+  // 실제 클라이언트 환경에서의 오늘 날짜 문자열 (예: '2026-10-21')
+  // 초기값은 빈 문자열로 시작하여 서버 정적 렌더링 시 과거 배포 시점 날짜가 고정되는 현상을 방지합니다.
+  const [todayStr, setTodayStr] = useState<string>('');
+
+  useEffect(() => {
+    // 1. 브라우저에서 컴포넌트가 로드되자마자 실제 사용자의 오늘 날짜를 감지
+    const updateToday = () => {
+      setTodayStr(formatDate(new Date()));
+    };
+    updateToday();
+
+    // 2. 브라우저 창을 켜둔 채 며칠이 지나거나 다른 탭에서 돌아왔을 때(포커스 복귀)도 최신 날짜로 자동 갱신
+    window.addEventListener('focus', updateToday);
+    document.addEventListener('visibilitychange', updateToday);
+
+    return () => {
+      window.removeEventListener('focus', updateToday);
+      document.removeEventListener('visibilitychange', updateToday);
+    };
+  }, []);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth(); // 0-indexed
@@ -170,7 +191,8 @@ export default function MonthlyCalendar({
       {/* 3. 6열(월~토) 월간 달력 날짜 그리드 */}
       <div className="grid grid-cols-6 divide-x divide-y divide-gray-200 border-b border-gray-200">
         {calendarCells.map((cell, idx) => {
-          const isToday = cell.dateStr === todayStr;
+          // 클라이언트의 실제 오늘 날짜와 일치하는지 판별
+          const isToday = todayStr !== '' && cell.dateStr === todayStr;
           const isSaturday = cell.dayOfWeek === 6;
 
           // 해당 날짜의 확정 예약 목록 필터링
@@ -190,14 +212,14 @@ export default function MonthlyCalendar({
               onClick={() => onSelectDate(cell.dateStr)}
               className={`min-h-[75px] sm:min-h-[85px] p-1.5 sm:p-2 flex flex-col justify-between transition-colors cursor-pointer group ${
                 cell.isCurrentMonth ? 'bg-white hover:bg-blue-50/30' : 'bg-gray-50/40 text-gray-400'
-              } ${isToday ? 'bg-blue-50/20' : ''}`}
+              } ${isToday ? 'bg-blue-50/30' : ''}`}
             >
               {/* 상단: 날짜 번호 및 뱃지 */}
               <div className="flex items-center justify-between mb-1">
                 <span
                   className={`text-xs font-bold inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all ${
                     isToday
-                      ? 'bg-blue-600 text-white shadow-xs'
+                      ? 'bg-blue-600 text-white shadow-xs font-black'
                       : isSaturday
                       ? 'text-blue-600'
                       : cell.isCurrentMonth

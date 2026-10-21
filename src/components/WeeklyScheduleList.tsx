@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -29,6 +29,7 @@ interface WeeklyCalendarGridProps {
  * - 상단 제목을 `'26년 10월 1주` 형태로 컴팩트하게 단축하여 모바일 줄바꿈 방지
  * - 버튼 텍스트를 `이번주`로 3글자 단축하여 쪼개짐 방지
  * - 주간 달력 칸에서는 '이름 시간' (예: 권x한 14-15)을 한 줄로 컴팩트하게 표기
+ * - [중요 개선]: 클라이언트 실제 오늘 날짜(YYYY-MM-DD) 실시간 동기화로 정확한 오늘 하이라이트 보장
  * ==============================================================================
  */
 export default function WeeklyScheduleList({
@@ -39,7 +40,25 @@ export default function WeeklyScheduleList({
   onSelectDate,
   onOpenReservationModal,
 }: WeeklyCalendarGridProps) {
-  const todayStr = formatDate(new Date());
+  // 실제 클라이언트 환경에서의 오늘 날짜 문자열
+  const [todayStr, setTodayStr] = useState<string>('');
+
+  useEffect(() => {
+    // 1. 브라우저에서 마운트 시 즉시 실제 사용자 오늘 날짜 반영
+    const updateToday = () => {
+      setTodayStr(formatDate(new Date()));
+    };
+    updateToday();
+
+    // 2. 창 복귀 시(포커스, 탭 전환) 최신 날짜로 실시간 업데이트
+    window.addEventListener('focus', updateToday);
+    document.addEventListener('visibilitychange', updateToday);
+
+    return () => {
+      window.removeEventListener('focus', updateToday);
+      document.removeEventListener('visibilitychange', updateToday);
+    };
+  }, []);
 
   // 기준 날짜가 속한 주의 월요일(영업 시작일) 구하기
   const getMonday = (d: Date) => {
@@ -166,7 +185,7 @@ export default function WeeklyScheduleList({
       {/* 3. 6열(월~토) 주간 달력 날짜 그리드 */}
       <div className="grid grid-cols-6 divide-x divide-gray-200 border-b border-gray-200">
         {weekDays.map((cell, idx) => {
-          const isToday = cell.dateStr === todayStr;
+          const isToday = todayStr !== '' && cell.dateStr === todayStr;
           const isSaturday = cell.dayOfWeek === 6;
 
           // 해당 날짜의 확정 예약 목록 필터링
@@ -182,7 +201,7 @@ export default function WeeklyScheduleList({
               key={idx}
               onClick={() => onSelectDate(cell.dateStr)}
               className={`min-h-[220px] sm:min-h-[280px] p-1 sm:p-2 flex flex-col justify-between transition-colors cursor-pointer group bg-white hover:bg-blue-50/30 ${
-                isToday ? 'bg-blue-50/20' : ''
+                isToday ? 'bg-blue-50/30' : ''
               }`}
             >
               {/* 상단: 날짜 번호 및 뱃지 */}
@@ -190,7 +209,7 @@ export default function WeeklyScheduleList({
                 <span
                   className={`text-xs font-bold inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full transition-all ${
                     isToday
-                      ? 'bg-blue-600 text-white shadow-xs'
+                      ? 'bg-blue-600 text-white shadow-xs font-black'
                       : isSaturday
                       ? 'text-blue-600'
                       : 'text-gray-800'
